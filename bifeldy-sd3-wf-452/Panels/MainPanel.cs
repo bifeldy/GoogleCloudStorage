@@ -707,7 +707,6 @@ namespace GoogleCloudStorage.Panels {
                 }
                 _gcs.LoadCredential(filePath, filePath.ToLower().EndsWith(".txt"));
                 await LoadBuckets();
-                btnConnect.Text = "Re/Connect";
             }
             catch (Exception ex) {
                 _logger.WriteError(ex);

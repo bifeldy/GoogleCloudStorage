@@ -171,7 +171,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnConnect.Name = "btnConnect";
             this.btnConnect.Size = new System.Drawing.Size(190, 30);
             this.btnConnect.TabIndex = 18;
-            this.btnConnect.Text = "Connect";
+            this.btnConnect.Text = "Re/Connect";
             this.btnConnect.UseVisualStyleBackColor = true;
             this.btnConnect.Click += new System.EventHandler(this.BtnConnect_Click);
             // 
