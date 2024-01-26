@@ -362,3 +362,4 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /bifeldy-sd3-wf-452/credentials.json
+/bifeldy-sd3-wf-452/credentials.txt

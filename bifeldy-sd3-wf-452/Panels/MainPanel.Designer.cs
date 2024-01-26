@@ -62,6 +62,9 @@ namespace GoogleCloudStorage.Panels {
             this.cbReplaceIfExist = new System.Windows.Forms.CheckBox();
             this.Expired = new System.Windows.Forms.Label();
             this.dtpExp = new System.Windows.Forms.DateTimePicker();
+            this.timerQueue = new System.Windows.Forms.Timer(this.components);
+            this.label2 = new System.Windows.Forms.Label();
+            this.numMaxProcess = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.imgDomar)).BeginInit();
             this.tabUpDownProgress.SuspendLayout();
             this.tabQueue.SuspendLayout();
@@ -72,6 +75,7 @@ namespace GoogleCloudStorage.Panels {
             ((System.ComponentModel.ISupportInitialize)(this.dgErrorFail)).BeginInit();
             this.tabSuccess.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).BeginInit();
             this.SuspendLayout();
             // 
             // chkWindowsStartup
@@ -163,7 +167,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnConnect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
             this.btnConnect.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.btnConnect.Location = new System.Drawing.Point(20, 197);
+            this.btnConnect.Location = new System.Drawing.Point(20, 170);
             this.btnConnect.Name = "btnConnect";
             this.btnConnect.Size = new System.Drawing.Size(190, 30);
             this.btnConnect.TabIndex = 18;
@@ -242,7 +246,7 @@ namespace GoogleCloudStorage.Panels {
             // 
             this.lblTime.AutoSize = true;
             this.lblTime.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblTime.Location = new System.Drawing.Point(16, 158);
+            this.lblTime.Location = new System.Drawing.Point(131, 136);
             this.lblTime.Name = "lblTime";
             this.lblTime.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.lblTime.Size = new System.Drawing.Size(79, 20);
@@ -253,11 +257,11 @@ namespace GoogleCloudStorage.Panels {
             // lblDate
             // 
             this.lblDate.AutoSize = true;
-            this.lblDate.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblDate.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold);
             this.lblDate.Location = new System.Drawing.Point(15, 133);
             this.lblDate.Name = "lblDate";
             this.lblDate.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.lblDate.Size = new System.Drawing.Size(132, 25);
+            this.lblDate.Size = new System.Drawing.Size(112, 24);
             this.lblDate.TabIndex = 24;
             this.lblDate.Text = "88-88-8888";
             this.lblDate.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -280,7 +284,7 @@ namespace GoogleCloudStorage.Panels {
             this.lvRemote.TileSize = new System.Drawing.Size(200, 36);
             this.lvRemote.UseCompatibleStateImageBehavior = false;
             this.lvRemote.View = System.Windows.Forms.View.Details;
-            this.lvRemote.SelectedIndexChanged += new System.EventHandler(this.lvRemote_SelectedIndexChanged);
+            this.lvRemote.SelectedIndexChanged += new System.EventHandler(this.LvRemote_SelectedIndexChanged);
             this.lvRemote.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.LvRemote_MouseDoubleClick);
             // 
             // btnUpload
@@ -289,12 +293,13 @@ namespace GoogleCloudStorage.Panels {
             this.btnUpload.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnUpload.Font = new System.Drawing.Font("Segoe UI", 12F);
             this.btnUpload.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.btnUpload.Location = new System.Drawing.Point(20, 233);
+            this.btnUpload.Location = new System.Drawing.Point(20, 206);
             this.btnUpload.Name = "btnUpload";
             this.btnUpload.Size = new System.Drawing.Size(190, 30);
             this.btnUpload.TabIndex = 28;
             this.btnUpload.Text = "Upload Ke Cloud ...";
             this.btnUpload.UseVisualStyleBackColor = true;
+            this.btnUpload.Click += new System.EventHandler(this.BtnUpload_Click);
             // 
             // btnDownload
             // 
@@ -459,7 +464,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnExportLaporan.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportLaporan.Font = new System.Drawing.Font("Segoe UI", 12F);
             this.btnExportLaporan.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.btnExportLaporan.Location = new System.Drawing.Point(20, 323);
+            this.btnExportLaporan.Location = new System.Drawing.Point(20, 319);
             this.btnExportLaporan.Name = "btnExportLaporan";
             this.btnExportLaporan.Size = new System.Drawing.Size(190, 30);
             this.btnExportLaporan.TabIndex = 32;
@@ -478,11 +483,11 @@ namespace GoogleCloudStorage.Panels {
             this.cbDeleteOnComplete.AutoSize = true;
             this.cbDeleteOnComplete.Checked = true;
             this.cbDeleteOnComplete.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbDeleteOnComplete.Location = new System.Drawing.Point(31, 274);
+            this.cbDeleteOnComplete.Location = new System.Drawing.Point(31, 247);
             this.cbDeleteOnComplete.Name = "cbDeleteOnComplete";
-            this.cbDeleteOnComplete.Size = new System.Drawing.Size(133, 17);
+            this.cbDeleteOnComplete.Size = new System.Drawing.Size(170, 17);
             this.cbDeleteOnComplete.TabIndex = 33;
-            this.cbDeleteOnComplete.Text = "Hapus Setelah Upload";
+            this.cbDeleteOnComplete.Text = "Hapus Setelah Selesai Upload";
             this.cbDeleteOnComplete.UseVisualStyleBackColor = true;
             // 
             // cbReplaceIfExist
@@ -490,11 +495,11 @@ namespace GoogleCloudStorage.Panels {
             this.cbReplaceIfExist.AutoSize = true;
             this.cbReplaceIfExist.Checked = true;
             this.cbReplaceIfExist.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbReplaceIfExist.Location = new System.Drawing.Point(31, 297);
+            this.cbReplaceIfExist.Location = new System.Drawing.Point(31, 270);
             this.cbReplaceIfExist.Name = "cbReplaceIfExist";
-            this.cbReplaceIfExist.Size = new System.Drawing.Size(124, 17);
+            this.cbReplaceIfExist.Size = new System.Drawing.Size(158, 17);
             this.cbReplaceIfExist.TabIndex = 34;
-            this.cbReplaceIfExist.Text = "Timpa File Yang Ada";
+            this.cbReplaceIfExist.Text = "Timpa File Yang Sudah Ada";
             this.cbReplaceIfExist.UseVisualStyleBackColor = true;
             // 
             // Expired
@@ -517,10 +522,49 @@ namespace GoogleCloudStorage.Panels {
             this.dtpExp.Size = new System.Drawing.Size(155, 20);
             this.dtpExp.TabIndex = 37;
             // 
+            // timerQueue
+            // 
+            this.timerQueue.Interval = 3000;
+            this.timerQueue.Tick += new System.EventHandler(this.TimerQueue_Tick);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(25, 296);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(106, 13);
+            this.label2.TabIndex = 38;
+            this.label2.Text = "Max. Proses Berjalan";
+            // 
+            // numMaxProcess
+            // 
+            this.numMaxProcess.Location = new System.Drawing.Point(135, 293);
+            this.numMaxProcess.Maximum = new decimal(new int[] {
+            999,
+            0,
+            0,
+            0});
+            this.numMaxProcess.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numMaxProcess.Name = "numMaxProcess";
+            this.numMaxProcess.Size = new System.Drawing.Size(75, 20);
+            this.numMaxProcess.TabIndex = 39;
+            this.numMaxProcess.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.numMaxProcess.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
             // CMainPanel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.numMaxProcess);
+            this.Controls.Add(this.label2);
             this.Controls.Add(this.dtpExp);
             this.Controls.Add(this.Expired);
             this.Controls.Add(this.cbReplaceIfExist);
@@ -560,6 +604,7 @@ namespace GoogleCloudStorage.Panels {
             ((System.ComponentModel.ISupportInitialize)(this.dgErrorFail)).EndInit();
             this.tabSuccess.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -602,6 +647,9 @@ namespace GoogleCloudStorage.Panels {
         private System.Windows.Forms.CheckBox cbReplaceIfExist;
         private System.Windows.Forms.Label Expired;
         private System.Windows.Forms.DateTimePicker dtpExp;
+        private System.Windows.Forms.Timer timerQueue;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.NumericUpDown numMaxProcess;
     }
 
 }

@@ -94,6 +94,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\DataGridViewProgress.cs" />
     <Compile Include="Components\FixAutoScrollFlowLayoutPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -176,9 +177,6 @@
     <None Include="bifeldy-sd3-wf-452.db">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="credentials.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -200,6 +198,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="credentials.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Images\domar.gif">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
