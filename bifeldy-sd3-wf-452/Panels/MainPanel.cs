@@ -146,6 +146,8 @@ namespace GoogleCloudStorage.Panels {
                 InitializeDataGridUpDownProgressStatus();
                 InitializeProgressInfoReporter();
 
+                CheckWeeklyUpload();
+
                 timerQueue.Enabled = true;
 
                 SetIdleBusyStatus(true);
@@ -489,8 +491,93 @@ namespace GoogleCloudStorage.Panels {
             });
 
             onWriteLogProgress = new Progress<string>(text => {
-                txtLog.Text += text;
+                txtLog.Text += Environment.NewLine + text + Environment.NewLine;
             });
+        }
+
+        private async void CheckWeeklyUpload() {
+            try {
+                DateTime curr = DateTime.Now;
+                int year = curr.Year;
+                int week = curr.GetWeekOfYear();
+                int month = curr.Month;
+                int rowCount = 0;
+                int pending = 0;
+                int completed = 0;
+                string uploadPendingInfo = "List Belum Selesai" + Environment.NewLine;
+                string uploadCompleteInfo = "List Sudah Selesai" + Environment.NewLine;
+                string fn1 = _config.Get<string>("File1Name", _app.GetConfig("file_1_name"));
+                string fn2 = _config.Get<string>("File2Name", _app.GetConfig("file_2_name"));
+                using (DbDataReader reader = await _db.Sqlite_ExecReaderAsync(@"
+                    SELECT year, week, dc_kode, file_1_name, file_1_date, file_2_name, file_2_date
+                    FROM upload_log
+                    WHERE year = :year AND week = :week AND month = :month
+                ", new List<CDbQueryParamBind> {
+                    new CDbQueryParamBind { NAME = "year", VALUE = year },
+                    new CDbQueryParamBind { NAME = "week", VALUE = week },
+                    new CDbQueryParamBind { NAME = "month", VALUE = month }
+                })) {
+                    while (reader.Read()) {
+                        string uploadInfo = Environment.NewLine;
+                        if (!reader.IsDBNull(2)) {
+                            rowCount++;
+                            uploadInfo += $"[#] " + reader.GetString(2);
+                            if (!reader.IsDBNull(3) && !reader.IsDBNull(4) && !reader.IsDBNull(5) && !reader.IsDBNull(6)) {
+                                completed++;
+                                uploadInfo += Environment.NewLine + $"[#] " + reader.GetString(3) + " :: " + new DateTime(long.Parse(reader.GetInt64(4).ToString())).ToString();
+                                uploadInfo += Environment.NewLine + $"[#] " + reader.GetString(5) + " :: " + new DateTime(long.Parse(reader.GetInt64(6).ToString())).ToString();
+                                uploadInfo += Environment.NewLine;
+                                uploadCompleteInfo += uploadInfo;
+                            }
+                            else {
+                                pending++;
+                                if (!reader.IsDBNull(3) && !reader.IsDBNull(4)) {
+                                    uploadInfo += Environment.NewLine + $"[#] " + reader.GetString(3) + " :: " + new DateTime(long.Parse(reader.GetInt64(4).ToString())).ToString();
+                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn2} BELUM DI UNGGAH";
+                                }
+                                else if (!reader.IsDBNull(5) && !reader.IsDBNull(6)) {
+                                    // -- SAMPE BISA MASUK KE SINI SIH DB DI OTAK ATIK PASTI !!
+                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn1} BELUM DI UNGGAH";
+                                    uploadInfo += Environment.NewLine + $"[#] " + reader.GetString(5) + " :: " + new DateTime(long.Parse(reader.GetInt64(6).ToString())).ToString();
+                                }
+                                else {
+                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn1} BELUM DI UNGGAH";
+                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn2} BELUM DI UNGGAH";
+                                }
+                                uploadInfo += Environment.NewLine;
+                                uploadPendingInfo += uploadInfo;
+                            }
+                        }
+                    }
+                    reader.Close();
+                }
+                _db.CloseAllConnection();
+                if (rowCount == 0) {
+                    string info = "Belum Ada File Yang Di Unggah Minggu Ini";
+                    if (onWriteLogProgress != null) {
+                        onWriteLogProgress.Report(info);
+                    }
+                    MessageBox.Show(info, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else {
+                    if (completed > 0) {
+                        if (onWriteLogProgress != null) {
+                            onWriteLogProgress.Report(uploadCompleteInfo);
+                        }
+                        MessageBox.Show(uploadCompleteInfo, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    if (pending > 0) {
+                        if (onWriteLogProgress != null) {
+                            onWriteLogProgress.Report(uploadPendingInfo);
+                        }
+                        MessageBox.Show(uploadPendingInfo, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Question);
+                    }
+                }
+            }
+            catch (Exception ex) {
+                _logger.WriteError(ex);
+                MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void ClearDataGridSelection() {
@@ -774,7 +861,7 @@ namespace GoogleCloudStorage.Panels {
                     }
                     else {
                         Clipboard.SetText(ddl);
-                        MessageBox.Show(ddl, $"Expired :: {dtpExp.Value}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show(ddl, $"(CopyPaste) Expired :: {dtpExp.Value}", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         Process.Start(ddl);
                     }
                 }

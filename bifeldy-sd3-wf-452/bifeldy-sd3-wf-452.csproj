@@ -175,7 +175,7 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <None Include="bifeldy-sd3-wf-452.db">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
