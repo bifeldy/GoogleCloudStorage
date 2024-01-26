@@ -314,6 +314,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnDownload.TabIndex = 29;
             this.btnDownload.Text = "Simpan Ke Lokal ...";
             this.btnDownload.UseVisualStyleBackColor = true;
+            this.btnDownload.Click += new System.EventHandler(this.BtnDownload_Click);
             // 
             // btnDdl
             // 

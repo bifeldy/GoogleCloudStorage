@@ -370,10 +370,10 @@ namespace GoogleCloudStorage.Panels {
                     if (progressOld != null) {
                         transferSpeed = $"{((progressNew.BytesSent - progressOld.BytesSent) / diff.TotalMilliseconds):0.00} KB/s";
                     }
-                    decimal transferPercentage = decimal.Parse($"{((decimal)100 * progressNew.BytesSent / fileInfo.Length):0.00}");
+                    decimal transferPercentage = decimal.Parse($"{((decimal) 100 * progressNew.BytesSent / fileInfo.Length):0.00}");
                     dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
                     dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Speed"].Index].Value = transferSpeed;
-                    TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal)fileInfo.Length / progressNew.BytesSent) / (decimal)diff.TotalSeconds));
+                    TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal) fileInfo.Length / progressNew.BytesSent) / (decimal)diff.TotalSeconds));
                     dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
                 }
                 else if (progressNew.Status == EGcsUploadStatus.Completed || progressNew.Status == EGcsUploadStatus.Failed) {
@@ -423,7 +423,7 @@ namespace GoogleCloudStorage.Panels {
 
             onGoingDownloadProgress = new Progress<dynamic>(obj => {
                 DataGridViewRow dataGridViewRow = obj.dgvr;
-                FileInfo fileInfo = obj.fi;
+                ulong fileSize = obj.sz;
                 CGcsDownloadProgress progressOld = obj.pOld;
                 CGcsDownloadProgress progressNew = obj.pNew;
                 DateTime dateTime = obj.dt;
@@ -437,16 +437,16 @@ namespace GoogleCloudStorage.Panels {
                     if (progressOld != null) {
                         transferSpeed = $"{((progressNew.BytesDownloaded - progressOld.BytesDownloaded) / diff.TotalMilliseconds):0.00} KB/s";
                     }
-                    decimal transferPercentage = decimal.Parse($"{((decimal)100 * progressNew.BytesDownloaded / fileInfo.Length):0.00}");
+                    decimal transferPercentage = decimal.Parse($"{((decimal) 100 * progressNew.BytesDownloaded / fileSize):0.00}");
                     dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
                     dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Speed"].Index].Value = transferSpeed;
-                    TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal)fileInfo.Length / progressNew.BytesDownloaded) / (decimal)diff.TotalSeconds));
+                    TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal) fileSize / progressNew.BytesDownloaded) / (decimal)diff.TotalSeconds));
                     dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
                 }
                 else if (progressNew.Status == EGcsDownloadStatus.Completed || progressNew.Status == EGcsDownloadStatus.Failed) {
                     onCompleteFailDownloadProgress.Report(new {
                         dgvr = dataGridViewRow,
-                        fi = fileInfo,
+                        sz = fileSize,
                         pOld = progressOld,
                         pNew = progressNew,
                         dt = dateTime
@@ -607,14 +607,16 @@ namespace GoogleCloudStorage.Panels {
             SetIdleBusyStatus(false);
             try {
                 string filePath = null;
-                using (OpenFileDialog upload = new OpenFileDialog()) {
-                    upload.InitialDirectory = _app.AppLocation;
-                    upload.Filter = "credentials (*.txt,*.json)|*.txt;*.json";
-                    upload.Title = "Open credentials(.txt|.json)";
-                    if (upload.ShowDialog() != DialogResult.OK) {
+                using (OpenFileDialog fd = new OpenFileDialog()) {
+                    fd.InitialDirectory = _app.AppLocation;
+                    fd.RestoreDirectory = true;
+                    fd.CheckFileExists = true;
+                    fd.Filter = "credentials (*.txt,*.json)|*.txt;*.json";
+                    fd.Title = "Open credentials(.txt|.json)";
+                    if (fd.ShowDialog() != DialogResult.OK) {
                         throw new Exception("Gagal memuat file credentials.json");
                     }
-                    filePath = upload.FileName;
+                    filePath = fd.FileName;
                 }
                 _gcs.LoadCredential(filePath, filePath.ToLower().EndsWith(".txt"));
                 await LoadBuckets();
@@ -736,7 +738,10 @@ namespace GoogleCloudStorage.Panels {
 
                     string exportPath = Path.Combine(_berkas.TempFolderPath, $"{DateTime.Now:yyy-MM-dd_HH-mm-ss}.csv");
                     File.WriteAllText(exportPath, sb.ToString());
-                    Process.Start(new ProcessStartInfo { Arguments = _berkas.TempFolderPath, FileName = "explorer.exe" });
+                    Process.Start(new ProcessStartInfo {
+                        Arguments = _berkas.TempFolderPath,
+                        FileName = "explorer.exe"
+                    });
                 }
             }
             catch (Exception ex) {
@@ -776,7 +781,7 @@ namespace GoogleCloudStorage.Panels {
             }
             catch (Exception ex) {
                 _logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Number Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Direct Download Link Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             SetIdleBusyStatus(true);
         }
@@ -785,51 +790,54 @@ namespace GoogleCloudStorage.Panels {
             SetIdleBusyStatus(false);
             try {
                 string selectedLocalFilePath = null;
-                using (OpenFileDialog upload = new OpenFileDialog()) {
-                    upload.InitialDirectory = _app.AppLocation;
-                    upload.Filter = "MemoryDump files (*.dmp)|*.dmp";
-                    upload.Title = "Select idm_metadata_gxxx_xxxxxx.dmp | idm_43table_gxxx_xxxxxx.dmp";
-                    if (upload.ShowDialog() == DialogResult.OK) {
-                        selectedLocalFilePath = upload.FileName;
+                using (OpenFileDialog fd = new OpenFileDialog()) {
+                    fd.InitialDirectory = _app.AppLocation;
+                    fd.RestoreDirectory = true;
+                    fd.CheckFileExists = true;
+                    fd.Filter = "MemoryDump files (*.dmp)|*.dmp";
+                    fd.Title = "Select idm_metadata_gxxx_xxxxxx.dmp | idm_43table_gxxx_xxxxxx.dmp";
+                    if (fd.ShowDialog() != DialogResult.OK) {
+                        throw new Exception("Gagal membuka file idm_***_gxxx_xxxxxx.dmp");
                     }
+                    selectedLocalFilePath = fd.FileName;
                 }
-                if (!string.IsNullOrEmpty(selectedLocalFilePath)) {
-                    string dc_kode = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
 
-                    DateTime curr = DateTime.Now;
-                    int year = curr.Year;
-                    int week = curr.GetWeekOfYear();
-                    int month = curr.Month;
+                string dc_kode = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
 
-                    string fn1 = _config.Get<string>("File1Name", _app.GetConfig("file_1_name"));
-                    string fn2 = _config.Get<string>("File2Name", _app.GetConfig("file_2_name"));
-                    if (dc_kode.StartsWith(fn1)) {
-                        int index = dc_kode.IndexOf(fn1);
-                        string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn1.Length);
-                        dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
-                    }
-                    else if (dc_kode.StartsWith(fn2)) {
-                        int index = dc_kode.IndexOf(fn2);
-                        string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn2.Length);
-                        dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
-                    }
-                    else {
-                        throw new Exception("Format nama file salah, IDM_***.dmp");
-                    }
+                DateTime curr = DateTime.Now;
+                int year = curr.Year;
+                int week = curr.GetWeekOfYear();
+                int month = curr.Month;
 
-                    string filedate = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().Split('_').Last().Split('.').First().ToLower();
-                    DateTime fileDate = DateTime.ParseExact(filedate, "yyMMdd", CultureInfo.InvariantCulture);
-                    if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
-                        throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
-                    }
+                string fn1 = _config.Get<string>("File1Name", _app.GetConfig("file_1_name"));
+                string fn2 = _config.Get<string>("File2Name", _app.GetConfig("file_2_name"));
+                if (dc_kode.StartsWith(fn1)) {
+                    int index = dc_kode.IndexOf(fn1);
+                    string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn1.Length);
+                    dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
+                }
+                else if (dc_kode.StartsWith(fn2)) {
+                    int index = dc_kode.IndexOf(fn2);
+                    string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn2.Length);
+                    dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
+                }
+                else {
+                    throw new Exception("Format nama file salah, IDM_***.dmp");
+                }
 
-                    string file1name = string.Empty;
-                    DateTime file1date = DateTime.MinValue;
-                    string file2name = string.Empty;
-                    DateTime file2date = DateTime.MinValue;
+                string filedate = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().Split('_').Last().Split('.').First().ToLower();
+                DateTime fileDate = DateTime.ParseExact(filedate, "yyMMdd", CultureInfo.InvariantCulture);
+                if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
+                    throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
+                }
 
-                    int rowCount = 0;
-                    using (DbDataReader reader = await _db.Sqlite_ExecReaderAsync(@"
+                string file1name = string.Empty;
+                DateTime file1date = DateTime.MinValue;
+                string file2name = string.Empty;
+                DateTime file2date = DateTime.MinValue;
+
+                int rowCount = 0;
+                using (DbDataReader reader = await _db.Sqlite_ExecReaderAsync(@"
                         SELECT file_1_name, file_1_date, file_2_name, file_2_date
                         FROM upload_log
                         WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode
@@ -839,26 +847,26 @@ namespace GoogleCloudStorage.Panels {
                         new CDbQueryParamBind { NAME = "month", VALUE = month },
                         new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode }
                     })) {
-                        while (reader.Read()) {
-                            rowCount++;
-                            if (!reader.IsDBNull(0)) {
-                                file1name = reader.GetString(0);
-                            }
-                            if (!reader.IsDBNull(1)) {
-                                file1date = new DateTime(long.Parse(reader.GetInt64(1).ToString()));
-                            }
-                            if (!reader.IsDBNull(2)) {
-                                file2name = reader.GetString(2);
-                            }
-                            if (!reader.IsDBNull(3)) {
-                                file2date = new DateTime(long.Parse(reader.GetInt64(3).ToString()));
-                            }
+                    while (reader.Read()) {
+                        rowCount++;
+                        if (!reader.IsDBNull(0)) {
+                            file1name = reader.GetString(0);
                         }
-                        reader.Close();
+                        if (!reader.IsDBNull(1)) {
+                            file1date = new DateTime(long.Parse(reader.GetInt64(1).ToString()));
+                        }
+                        if (!reader.IsDBNull(2)) {
+                            file2name = reader.GetString(2);
+                        }
+                        if (!reader.IsDBNull(3)) {
+                            file2date = new DateTime(long.Parse(reader.GetInt64(3).ToString()));
+                        }
                     }
-                    _db.CloseAllConnection();
-                    if (rowCount == 0) {
-                        await _db.SQLite_ExecQuery(@"
+                    reader.Close();
+                }
+                _db.CloseAllConnection();
+                if (rowCount == 0) {
+                    await _db.SQLite_ExecQuery(@"
                             INSERT INTO upload_log(year, week, month, dc_kode)
                             VALUES(:year, :week, :month, :dc_kode)
                         ", new List<CDbQueryParamBind> {
@@ -867,24 +875,23 @@ namespace GoogleCloudStorage.Panels {
                             new CDbQueryParamBind { NAME = "month", VALUE = month },
                             new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode }
                         });
-                    }
+                }
 
-                    if (!string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
-                        string msg = $"Upload minggu ini sudah selesai{Environment.NewLine}{Environment.NewLine}{file1name}{Environment.NewLine}{file1date}{Environment.NewLine}{Environment.NewLine}{file2name}{Environment.NewLine}{file2date}";
-                        MessageBox.Show(msg, $"Upload Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else if (string.IsNullOrEmpty(file1name) && string.IsNullOrEmpty(file2name)) {
-                        await Upload12(selectedLocalFilePath);
-                    }
-                    else if (string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
-                        await Upload1(selectedLocalFilePath, file2name.ToLower());
-                    }
-                    else if (!string.IsNullOrEmpty(file1name) && string.IsNullOrEmpty(file2name)) {
-                        await Upload2(selectedLocalFilePath, file1name.ToLower());
-                    }
-                    else {
-                        MessageBox.Show($"File bermasalah{Environment.NewLine}Silahkan coba lagi dengan file lain", $"File Check Problem", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
+                if (!string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
+                    string msg = $"Upload minggu ini sudah selesai{Environment.NewLine}{Environment.NewLine}{file1name}{Environment.NewLine}{file1date}{Environment.NewLine}{Environment.NewLine}{file2name}{Environment.NewLine}{file2date}";
+                    MessageBox.Show(msg, $"Upload Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else if (string.IsNullOrEmpty(file1name) && string.IsNullOrEmpty(file2name)) {
+                    await Upload12(selectedLocalFilePath);
+                }
+                else if (string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
+                    await Upload1(selectedLocalFilePath, file2name.ToLower());
+                }
+                else if (!string.IsNullOrEmpty(file1name) && string.IsNullOrEmpty(file2name)) {
+                    await Upload2(selectedLocalFilePath, file1name.ToLower());
+                }
+                else {
+                    MessageBox.Show($"File bermasalah{Environment.NewLine}Silahkan coba lagi dengan file lain", $"File Check Problem", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex) {
@@ -1032,7 +1039,7 @@ namespace GoogleCloudStorage.Panels {
             if (!cbReplaceIfExist.Checked) {
                 foreach (GcsObject obj in allObjects) {
                     if (obj.Name.ToLower().Contains(fileInfo.Name.ToLower())) {
-                        dialogResult = MessageBox.Show($"Tetap lanjut upload '{fileInfo.Name}'", "File Already Exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        dialogResult = MessageBox.Show($"Tetap lanjut upload '{fileInfo.Name}' ?", "File Already Exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                         break;
                     }
                 }
@@ -1084,7 +1091,7 @@ namespace GoogleCloudStorage.Panels {
                 await Task.Run(async () => {
                     try {
                         string file_md5 = _chiper.CalculateMD5(fileInfo.FullName);
-                        dynamic uploaded = null;
+                        CGcsUploadProgress uploaded = null;
 
                         using (Stream stream = File.OpenRead(fileLocal)) {
                             GcsMediaUpload mediaUpload = _gcs.GenerateUploadMedia(fileInfo, targetFolderId, stream);
@@ -1221,7 +1228,6 @@ namespace GoogleCloudStorage.Panels {
                                 _logger.WriteError(ex);
                                 MessageBox.Show(ex.Message, "Delete Local Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
-
                         }
                     }
                     catch (TaskCanceledException ex) {
@@ -1241,11 +1247,77 @@ namespace GoogleCloudStorage.Panels {
                 // TODO ::
 
             }
-
-            string path = txtDirPath.Text;
-            await LoadObjects(path);
         }
 
+        private async void BtnDownload_Click(object sender, EventArgs e) {
+            SetIdleBusyStatus(false);
+            try {
+                dynamic item = lvRemote.SelectedItems[0].Tag;
+                if (item is GcsObject || item.Kind == "storage#object") {
+                    string selectedLocalFilePath = null;
+                    using (SaveFileDialog fd = new SaveFileDialog()) {
+                        fd.InitialDirectory = _app.AppLocation;
+                        fd.RestoreDirectory = true;
+                        fd.CheckPathExists = true;
+                        fd.FileName = item.Name;
+                        fd.Filter = "MemoryDump files (*.dmp)|*.dmp";
+                        fd.Title = $"Save {item.Name}";
+                        fd.DefaultExt = _config.Get<string>("LocalAllowedFileExt", _app.GetConfig("local_allowed_file_ext"));
+                        if (fd.ShowDialog() != DialogResult.OK) {
+                            throw new Exception("Gagal menentukan lokasi penyimpanan file idm_***_gxxx_xxxxxx.dmp");
+                        }
+                        selectedLocalFilePath = fd.FileName;
+                    }
+
+                    string[] arrRemoteDir = txtDirPath.Text.Split('/');
+                    string folderId = arrRemoteDir[arrRemoteDir.Length - 1];
+                    string targetPathLocal = selectedLocalFilePath.Replace("\\", "/");
+
+                    if (CheckProgressIsRunning(targetPathLocal, $"Google://{folderId}/{item.Name}")) {
+                        throw new Exception($"Proses {item.Name} sedang berjalan");
+                    }
+
+                    int idx = dgOnProgress.Rows.Add(targetPathLocal, "<<<===", $"Google://{folderId}/{item.Name}");
+                    DataGridViewRow dataGridViewRow = dgOnProgress.Rows[idx];
+
+                    await Task.Run(async () => {
+                        try {
+                            CGcsDownloadProgress progressOld = null;
+                            DateTime dateTime = DateTime.Now;
+                            await _gcs.DownloadFile((GcsObject) item, selectedLocalFilePath, (progressNew) => {
+                                onGoingDownloadProgress.Report(new {
+                                    dgvr = dataGridViewRow,
+                                    sz = item.Size,
+                                    pOld = progressOld,
+                                    pNew = progressNew,
+                                    dt = dateTime
+                                });
+                                progressOld = progressNew;
+                                dateTime = DateTime.Now;
+                            });
+
+                            Process.Start(new ProcessStartInfo {
+                                Arguments = Path.GetDirectoryName(selectedLocalFilePath),
+                                FileName = "explorer.exe"
+                            });
+                        }
+                        catch (TaskCanceledException ex) {
+                            _logger.WriteError(ex);
+                            MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                        catch (Exception ex) {
+                            _logger.WriteError(ex);
+                            MessageBox.Show(ex.Message, "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    });
+                }
+            }
+            catch (Exception ex) {
+                _logger.WriteError(ex);
+                MessageBox.Show(ex.Message, "Save File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            SetIdleBusyStatus(true);
+        }
     }
 
 }
