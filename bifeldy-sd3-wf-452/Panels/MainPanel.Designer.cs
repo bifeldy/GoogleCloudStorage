@@ -533,13 +533,13 @@ namespace GoogleCloudStorage.Panels {
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(25, 296);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(106, 13);
+            this.label2.Size = new System.Drawing.Size(108, 13);
             this.label2.TabIndex = 38;
-            this.label2.Text = "Max. Proses Berjalan";
+            this.label2.Text = "Max. Upload Berjalan";
             // 
             // numMaxProcess
             // 
-            this.numMaxProcess.Location = new System.Drawing.Point(135, 293);
+            this.numMaxProcess.Location = new System.Drawing.Point(139, 293);
             this.numMaxProcess.Maximum = new decimal(new int[] {
             999,
             0,
@@ -551,7 +551,7 @@ namespace GoogleCloudStorage.Panels {
             0,
             0});
             this.numMaxProcess.Name = "numMaxProcess";
-            this.numMaxProcess.Size = new System.Drawing.Size(75, 20);
+            this.numMaxProcess.Size = new System.Drawing.Size(71, 20);
             this.numMaxProcess.TabIndex = 39;
             this.numMaxProcess.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numMaxProcess.Value = new decimal(new int[] {
