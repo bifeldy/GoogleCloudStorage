@@ -19,7 +19,7 @@ namespace GoogleCloudStorage.Components {
     /// <summary>
     /// This class is an implementation of the 'IComparer' interface.
     /// </summary>
-    public class ListViewColumnSorter : IComparer {
+    public sealed class ListViewColumnSorter : IComparer {
         /// <summary>
         /// Specifies the column to be sorted
         /// </summary>
@@ -58,8 +58,8 @@ namespace GoogleCloudStorage.Components {
             ListViewItem listviewX, listviewY;
 
             // Cast the objects to be compared to ListViewItem objects
-            listviewX = (ListViewItem)x;
-            listviewY = (ListViewItem)y;
+            listviewX = (ListViewItem) x;
+            listviewY = (ListViewItem) y;
 
             decimal num = 0;
             if (decimal.TryParse(listviewX.SubItems[ColumnToSort].Text, out num)) {
