@@ -57,8 +57,9 @@ namespace GoogleCloudStorage.Panels {
         Icon DEFAULT_ICON_BUCKET = DefaultIcons.Extract("shell32.dll", 9, true);
         Icon DEFAULT_ICON_OBJECT = DefaultIcons.Extract("shell32.dll", 69, true);
 
+        private ListViewColumnSorter lvColumnSorter;
+
         private List<string> ctlExclBusy = new List<string> {
-            "btnConnect",
             "btnUpload",
             "btnExportLaporan",
             "btnDownload",
@@ -145,6 +146,9 @@ namespace GoogleCloudStorage.Panels {
 
                 InitializeDataGridUpDownProgressStatus();
                 InitializeProgressInfoReporter();
+
+                lvColumnSorter = new ListViewColumnSorter();
+                lvRemote.ListViewItemSorter = lvColumnSorter;
 
                 CheckWeeklyUpload();
 
@@ -597,7 +601,24 @@ namespace GoogleCloudStorage.Panels {
             dtpExp.Value = dtpExp.MinDate;
         }
 
+        private void LvRemote_ColumnClick(object sender, ColumnClickEventArgs e) {
+            if (e.Column == lvColumnSorter.SortColumn) {
+                if (lvColumnSorter.Order == SortOrder.Ascending) {
+                    lvColumnSorter.Order = SortOrder.Descending;
+                }
+                else {
+                    lvColumnSorter.Order = SortOrder.Ascending;
+                }
+            }
+            else {
+                lvColumnSorter.SortColumn = e.Column;
+                lvColumnSorter.Order = SortOrder.Ascending;
+            }
+            lvRemote.Sort();
+        }
+
         private async Task LoadBuckets() {
+            SetIdleBusyStatus(false);
             try {
                 btnHome.Enabled = false;
                 btnRefresh.Enabled = false;
@@ -613,13 +634,12 @@ namespace GoogleCloudStorage.Panels {
                 imageList.Images.Add(DEFAULT_ICON_BUCKET);
                 lvRemote.SmallImageList = imageList;
                 lvRemote.LargeImageList = imageList;
-                lvRemote.Columns.Clear();
                 ColumnHeader[] columnHeader = new ColumnHeader[] {
                     new ColumnHeader { Text = "Nama Bucket", Width = lvRemote.Size.Width - 167 - 10 },
                     new ColumnHeader { Text = "Diperbarui", Width = 167 }
                 };
+                lvRemote.Columns.Clear();
                 lvRemote.Columns.AddRange(columnHeader);
-                lvRemote.Items.Clear();
                 ListViewItem[] lvis = allBuckets.Where(bckt => {
                     return bckt.Name.ToUpper().Contains(txtFilter.Text.ToUpper());
                 }).Select(bckt => {
@@ -627,6 +647,7 @@ namespace GoogleCloudStorage.Panels {
                     lvi.SubItems.Add(bckt.Updated.ToString());
                     return lvi;
                 }).ToArray();
+                lvRemote.Items.Clear();
                 lvRemote.Items.AddRange(lvis);
                 UpdateLastActivity();
             }
@@ -639,9 +660,11 @@ namespace GoogleCloudStorage.Panels {
                 btnRefresh.Enabled = true;
                 txtFilter.ReadOnly = false;
             }
+            SetIdleBusyStatus(true);
         }
 
         private async Task LoadObjects(string path) {
+            SetIdleBusyStatus(false);
             try {
                 btnHome.Enabled = false;
                 btnRefresh.Enabled = false;
@@ -657,14 +680,13 @@ namespace GoogleCloudStorage.Panels {
                 imageList.Images.Add(DEFAULT_ICON_OBJECT);
                 lvRemote.SmallImageList = imageList;
                 lvRemote.LargeImageList = imageList;
-                lvRemote.Columns.Clear();
                 ColumnHeader[] columnHeader = new ColumnHeader[] {
                     new ColumnHeader { Text = "Nama Berkas", Width = lvRemote.Size.Width - (96 + 192 + (2 * 10)) },
                     new ColumnHeader { Text = "Ukuran", Width = 96 },
-                    new ColumnHeader { Text = "Tanggal Upload", Width = 192 }
+                    new ColumnHeader { Text = "Tanggal Selesai Upload", Width = 192 }
                 };
+                lvRemote.Columns.Clear();
                 lvRemote.Columns.AddRange(columnHeader);
-                lvRemote.Items.Clear();
                 ListViewItem[] lvis = allObjects.Where(obj => {
                     return obj.Name.ToUpper().Contains(txtFilter.Text.ToUpper());
                 }).Select(obj => {
@@ -673,6 +695,7 @@ namespace GoogleCloudStorage.Panels {
                     lvi.SubItems.Add(obj.Updated.ToString());
                     return lvi;
                 }).ToArray();
+                lvRemote.Items.Clear();
                 lvRemote.Items.AddRange(lvis);
                 UpdateLastActivity();
             }
@@ -688,10 +711,10 @@ namespace GoogleCloudStorage.Panels {
                 btnUpload.Enabled = true;
                 btnExportLaporan.Enabled = true;
             }
+            SetIdleBusyStatus(true);
         }
 
         private async void BtnConnect_Click(object sender, EventArgs e) {
-            SetIdleBusyStatus(false);
             try {
                 string filePath = null;
                 using (OpenFileDialog fd = new OpenFileDialog()) {
@@ -712,7 +735,6 @@ namespace GoogleCloudStorage.Panels {
                 _logger.WriteError(ex);
                 MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            SetIdleBusyStatus(true);
         }
 
         private void LvRemote_SelectedIndexChanged(object sender, EventArgs e) {
@@ -728,29 +750,18 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private async void LvRemote_MouseDoubleClick(object sender, MouseEventArgs e) {
-            SetIdleBusyStatus(false);
             dynamic item = lvRemote.SelectedItems[0].Tag;
             if (item is GcsBucket || item.Kind == "storage#bucket") {
                 // Name = Id Bucket Sama Aja Kayaknya (?)
                 await LoadObjects(item.Name);
             }
-            SetIdleBusyStatus(true);
         }
 
         private async void BtnHome_Click(object sender, EventArgs e) {
-            SetIdleBusyStatus(false);
-            try {
-                await LoadBuckets();
-            }
-            catch (Exception ex) {
-                _logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            SetIdleBusyStatus(true);
+            await LoadBuckets();
         }
 
         private async void BtnRefresh_Click(object sender, EventArgs e) {
-            SetIdleBusyStatus(false);
             string path = txtDirPath.Text;
             if (string.IsNullOrEmpty(path)) {
                 await LoadBuckets();
@@ -758,7 +769,6 @@ namespace GoogleCloudStorage.Panels {
             else {
                 await LoadObjects(path);
             }
-            SetIdleBusyStatus(true);
         }
 
         private void TxtFilter_KeyDown(object sender, KeyEventArgs e) {
@@ -1145,7 +1155,6 @@ namespace GoogleCloudStorage.Panels {
             if (!string.IsNullOrEmpty(fileNextPath)) {
                 await AddQueue(fileNextPath.Replace("\\", "/"));
             }
-
         }
 
         private async void TimerQueue_Tick(object sender, EventArgs e) {
@@ -1404,6 +1413,7 @@ namespace GoogleCloudStorage.Panels {
             }
             SetIdleBusyStatus(true);
         }
+
     }
 
 }

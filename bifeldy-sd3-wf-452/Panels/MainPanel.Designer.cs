@@ -284,6 +284,7 @@ namespace GoogleCloudStorage.Panels {
             this.lvRemote.TileSize = new System.Drawing.Size(200, 36);
             this.lvRemote.UseCompatibleStateImageBehavior = false;
             this.lvRemote.View = System.Windows.Forms.View.Details;
+            this.lvRemote.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.LvRemote_ColumnClick);
             this.lvRemote.SelectedIndexChanged += new System.EventHandler(this.LvRemote_SelectedIndexChanged);
             this.lvRemote.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.LvRemote_MouseDoubleClick);
             // 
