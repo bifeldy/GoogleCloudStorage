@@ -45,7 +45,7 @@ namespace GoogleCloudStorage.Panels {
         private readonly IConverter _converter;
         private readonly IChiper _chiper;
         private readonly IGoogleCloudStorage _gcs;
-        private readonly IBerkas _berkas;
+        private readonly ICsv _csv;
 
         private CMainForm mainForm;
 
@@ -89,7 +89,8 @@ namespace GoogleCloudStorage.Panels {
             IConverter converter,
             IChiper chiper,
             IGoogleCloudStorage gcs,
-            IBerkas berkas
+            IBerkas berkas,
+            ICsv csv
         ) {
             _app = app;
             _logger = logger;
@@ -99,7 +100,7 @@ namespace GoogleCloudStorage.Panels {
             _converter = converter;
             _chiper = chiper;
             _gcs = gcs;
-            _berkas = berkas;
+            _csv = csv;
 
             InitializeComponent();
             OnInit();
@@ -832,10 +833,10 @@ namespace GoogleCloudStorage.Panels {
                         }
                     }
 
-                    string exportPath = Path.Combine(_berkas.TempFolderPath, $"{DateTime.Now:yyy-MM-dd_HH-mm-ss}.csv");
+                    string exportPath = Path.Combine(_csv.CsvFolderPath, $"{DateTime.Now:yyy-MM-dd_HH-mm-ss}.csv");
                     File.WriteAllText(exportPath, sb.ToString());
                     Process.Start(new ProcessStartInfo {
-                        Arguments = _berkas.TempFolderPath,
+                        Arguments = _csv.CsvFolderPath,
                         FileName = "explorer.exe"
                     });
                 }
