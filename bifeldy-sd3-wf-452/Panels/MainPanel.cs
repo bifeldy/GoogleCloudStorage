@@ -556,7 +556,7 @@ namespace GoogleCloudStorage.Panels {
                     }
                     reader.Close();
                 }
-                _db.CloseAllConnection();
+                _db.OraPg_MsSqlLiteCloseAllConnection();
                 if (rowCount == 0) {
                     string info = "Belum Ada File Yang Di Unggah Minggu Ini";
                     if (onWriteLogProgress != null) {
@@ -961,7 +961,7 @@ namespace GoogleCloudStorage.Panels {
                     }
                     reader.Close();
                 }
-                _db.CloseAllConnection();
+                _db.OraPg_MsSqlLiteCloseAllConnection();
                 if (rowCount == 0) {
                     await _db.SQLite_ExecQuery(@"
                             INSERT INTO upload_log(year, week, month, dc_kode)
@@ -1212,7 +1212,7 @@ namespace GoogleCloudStorage.Panels {
                                 }
                                 reader.Close();
                             }
-                            _db.CloseAllConnection();
+                            _db.OraPg_MsSqlLiteCloseAllConnection();
 
                             if (uploadSession == null) {
                                 await _db.SQLite_ExecQuery(@"
