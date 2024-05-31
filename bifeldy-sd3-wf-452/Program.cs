@@ -61,17 +61,22 @@ namespace GoogleCloudStorage {
                         "GoogleCloudStorage.Panels"
                     });
 
-                    // Khusus Form Bisa Di Bikin Independen, Jadinya Gak Wajib Masuk Ke DI, Form Utama Yang Wajib DI
-                    // Kalau Form Di Panggil Via Resolve DI, Saat Di Close Kena Dispose GC, Tidak Bisa Resolve Lagi
+                    // Khusus Form Bisa Di Bikin Independen, Jadinya Gak Wajib Masuk Ke Dependency Injection (DI), Form Utama Yang Wajib DI
+                    // Kalau Singleton Form Di Panggil Via Resolve DI, Saat Di Close(); Kena Dispose GC, Tidak Bisa Resolve Lagi
+                    // Isi Parameter Dengan `false` Supaya Selalu Dapat Object Baru Setiap Instance (Bukan Singleton)
                     //
                     // Misal :: Di Buat Dan Di Panggil Dari From Lain
                     //
-                    //     Form CReportLaporan reportLaporan = new CReportLaporan();
-                    //     reportLaporan.SetLaporan(dataTable, paramList, rdlcPath, dataSetName)
-                    //     reportLaporan.Show();
-                    //     reportLaporan.Close();
+                    // Tanpa DI, Tidak Bisa Lanjut Pakai DI, Constructor Bersih
                     //
-                    Bifeldyz.RegisterDiClass<CMainForm>();
+                    //     CReportLaporan reportLaporan = new CReportLaporan();
+                    //
+                    // Kalau Via Resolve DI, Enaknya Bisa Lanjut Pakai DI Juga Di Constructor
+                    //
+                    //     CReportLaporan reportLaporan = CProgram.Bifeldyz.ResolveClass<CReportLaporan>();
+                    //
+                    Bifeldyz.RegisterDiClass<CMainForm>(false);
+                    Bifeldyz.RegisterDiClass<CReportLaporan>(false);
 
                     using (dynamic lifetimeScope = Bifeldyz.BeginLifetimeScope()) {
                         Application.Run(Bifeldyz.ResolveClass<CMainForm>());
