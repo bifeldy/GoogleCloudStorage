@@ -428,8 +428,10 @@ namespace GoogleCloudStorage.Panels {
                 );
                 dgOnProgress.Rows.RemoveAt(dgOnProgress.Rows.IndexOf(dataGridViewRow));
 
-                string path = txtDirPath.Text;
-                await LoadObjects(path);
+                if (dgOnProgress.Rows.Count <= 0 && _app.IsIdle) {
+                    string path = txtDirPath.Text;
+                    await LoadObjects(path);
+                }
 
                 ClearDataGridSelection();
             });
@@ -501,8 +503,10 @@ namespace GoogleCloudStorage.Panels {
                 );
                 dgOnProgress.Rows.RemoveAt(dgOnProgress.Rows.IndexOf(dataGridViewRow));
 
-                string path = txtDirPath.Text;
-                await LoadObjects(path);
+                if (dgOnProgress.Rows.Count <= 0 && _app.IsIdle) {
+                    string path = txtDirPath.Text;
+                    await LoadObjects(path);
+                }
 
                 ClearDataGridSelection();
             });
@@ -742,7 +746,9 @@ namespace GoogleCloudStorage.Panels {
                     filePath = fd.FileName;
                 }
                 _gcs.LoadCredential(filePath, filePath.ToLower().EndsWith(".txt"));
-                await LoadBuckets();
+                if (_app.IsIdle) {
+                    await LoadBuckets();
+                }
             }
             catch (Exception ex) {
                 _logger.WriteError(ex);
@@ -766,21 +772,27 @@ namespace GoogleCloudStorage.Panels {
             dynamic item = lvRemote.SelectedItems[0].Tag;
             if (item is GcsBucket || item.Kind == "storage#bucket") {
                 // Name = Id Bucket Sama Aja Kayaknya (?)
-                await LoadObjects(item.Name);
+                if (_app.IsIdle) {
+                    await LoadObjects(item.Name);
+                }
             }
         }
 
         private async void BtnHome_Click(object sender, EventArgs e) {
-            await LoadBuckets();
+            if (_app.IsIdle) {
+                await LoadBuckets();
+            }
         }
 
         private async void BtnRefresh_Click(object sender, EventArgs e) {
             string path = txtDirPath.Text;
-            if (string.IsNullOrEmpty(path)) {
-                await LoadBuckets();
-            }
-            else {
-                await LoadObjects(path);
+            if (_app.IsIdle) {
+                if (string.IsNullOrEmpty(path)) {
+                    await LoadBuckets();
+                }
+                else {
+                    await LoadObjects(path);
+                }
             }
         }
 
@@ -1388,7 +1400,7 @@ namespace GoogleCloudStorage.Panels {
                     int idx = dgOnProgress.Rows.Add(targetPathLocal, "<<<===", $"Google://{folderId}/{item.Name}");
                     DataGridViewRow dataGridViewRow = dgOnProgress.Rows[idx];
 
-                    await Task.Run(async () => {
+                    _ = Task.Run(async () => {
                         try {
                             CGcsDownloadProgress progressOld = null;
                             DateTime dateTime = DateTime.Now;
