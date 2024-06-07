@@ -372,16 +372,22 @@ namespace GoogleCloudStorage.Panels {
                 dgOnProgress_Status.Value = $"{progressNew.Status} ...";
 
                 if (progressNew.Status == EGcsUploadStatus.Uploading) {
-                    string transferSpeed = $"0 KB/s";
                     TimeSpan diff = DateTime.Now - dateTime;
                     if (progressOld != null) {
-                        transferSpeed = $"{((progressNew.BytesSent - progressOld.BytesSent) / diff.TotalMilliseconds):0.00} KB/s";
+                        string transferSpeed = $"0 KB/s";
+                        if (diff.TotalMilliseconds > 0) {
+                            transferSpeed = $"{((progressNew.BytesSent - progressOld.BytesSent) / diff.TotalMilliseconds):0.00} KB/s";
+                        }
+                        dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Speed"].Index].Value = transferSpeed;
                     }
-                    decimal transferPercentage = decimal.Parse($"{((decimal) 100 * progressNew.BytesSent / fileInfo.Length):0.00}");
-                    dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
-                    dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Speed"].Index].Value = transferSpeed;
-                    TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal) fileInfo.Length / progressNew.BytesSent) / (decimal)diff.TotalSeconds));
-                    dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
+                    if (fileInfo.Length > 0) {
+                        decimal transferPercentage = decimal.Parse($"{((decimal)100 * progressNew.BytesSent / fileInfo.Length):0.00}");
+                        dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
+                    }
+                    if (progressNew.BytesSent > 0 && diff.TotalSeconds > 0) {
+                        TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal) fileInfo.Length / progressNew.BytesSent) / (decimal) diff.TotalSeconds));
+                        dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
+                    }
                 }
                 else if (progressNew.Status == EGcsUploadStatus.Completed || progressNew.Status == EGcsUploadStatus.Failed) {
                     onCompleteFailUploadProgress.Report(new {
@@ -439,16 +445,22 @@ namespace GoogleCloudStorage.Panels {
                 dgOnProgress_Status.Value = $"{progressNew.Status} ...";
 
                 if (progressNew.Status == EGcsDownloadStatus.Downloading) {
-                    string transferSpeed = $"0 KB/s";
                     TimeSpan diff = DateTime.Now - dateTime;
                     if (progressOld != null) {
-                        transferSpeed = $"{((progressNew.BytesDownloaded - progressOld.BytesDownloaded) / diff.TotalMilliseconds):0.00} KB/s";
+                        string transferSpeed = $"0 KB/s";
+                        if (diff.TotalMilliseconds > 0) {
+                            transferSpeed = $"{((progressNew.BytesDownloaded - progressOld.BytesDownloaded) / diff.TotalMilliseconds):0.00} KB/s";
+                        }
+                        dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Speed"].Index].Value = transferSpeed;
                     }
-                    decimal transferPercentage = decimal.Parse($"{((decimal) 100 * progressNew.BytesDownloaded / fileSize):0.00}");
-                    dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
-                    dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Speed"].Index].Value = transferSpeed;
-                    TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal) fileSize / progressNew.BytesDownloaded) / (decimal)diff.TotalSeconds));
-                    dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
+                    if (fileSize > 0) {
+                        decimal transferPercentage = decimal.Parse($"{((decimal) 100 * progressNew.BytesDownloaded / fileSize):0.00}");
+                        dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
+                    }
+                    if (progressNew.BytesDownloaded > 0 && diff.TotalSeconds > 0) {
+                        TimeSpan etaSeconds = TimeSpan.FromSeconds((int)(((decimal) fileSize / progressNew.BytesDownloaded) / (decimal) diff.TotalSeconds));
+                        dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
+                    }
                 }
                 else if (progressNew.Status == EGcsDownloadStatus.Completed || progressNew.Status == EGcsDownloadStatus.Failed) {
                     onCompleteFailDownloadProgress.Report(new {
