@@ -49,7 +49,7 @@ namespace GoogleCloudStorage.Components {
                     // detect pop-up display and switch view to month selection
                     case -950:
                         var cal = SendMessage(Handle, DTM_GETMONTHCAL, IntPtr.Zero, IntPtr.Zero);
-                        SendMessage(cal, MCM_SETCURRENTVIEW, IntPtr.Zero, (IntPtr)1);
+                        SendMessage(cal, MCM_SETCURRENTVIEW, IntPtr.Zero, (IntPtr) 1);
                         break;
 
                     // detect month selection and close the pop-up

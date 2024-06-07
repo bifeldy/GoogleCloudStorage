@@ -381,7 +381,7 @@ namespace GoogleCloudStorage.Panels {
                         dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Speed"].Index].Value = transferSpeed;
                     }
                     if (fileInfo.Length > 0) {
-                        decimal transferPercentage = decimal.Parse($"{((decimal)100 * progressNew.BytesSent / fileInfo.Length):0.00}");
+                        decimal transferPercentage = decimal.Parse($"{((decimal) 100 * progressNew.BytesSent / fileInfo.Length):0.00}");
                         dataGridViewRow.Cells[dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
                     }
                     if (progressNew.BytesSent > 0 && diff.TotalSeconds > 0) {
