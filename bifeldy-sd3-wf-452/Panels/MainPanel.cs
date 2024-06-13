@@ -45,6 +45,7 @@ namespace GoogleCloudStorage.Panels {
         private readonly IConverter _converter;
         private readonly IChiper _chiper;
         private readonly IGoogleCloudStorage _gcs;
+        private readonly IBerkas _berkas;
         private readonly ICsv _csv;
 
         private CMainForm mainForm;
@@ -100,6 +101,7 @@ namespace GoogleCloudStorage.Panels {
             _converter = converter;
             _chiper = chiper;
             _gcs = gcs;
+            _berkas = berkas;
             _csv = csv;
 
             InitializeComponent();
@@ -1404,7 +1406,19 @@ namespace GoogleCloudStorage.Panels {
                         try {
                             CGcsDownloadProgress progressOld = null;
                             DateTime dateTime = DateTime.Now;
+
+                            CGcsDownloadProgress existingFile = null;
+                            string fileTempPath = Path.Combine(this._berkas.DownloadFolderPath, item.Name);
+                            if (File.Exists(fileTempPath)) {
+                                existingFile = new CGcsDownloadProgress {
+                                    BytesDownloaded = new FileInfo(fileTempPath).Length
+                                };
+                            }
+
                             await _gcs.DownloadFile((GcsObject) item, selectedLocalFilePath, (progressNew) => {
+                                if (existingFile != null) {
+                                    progressNew.BytesDownloaded += existingFile.BytesDownloaded;
+                                }
                                 onGoingDownloadProgress.Report(new {
                                     dgvr = dataGridViewRow,
                                     sz = item.Size,
@@ -1415,6 +1429,11 @@ namespace GoogleCloudStorage.Panels {
                                 progressOld = progressNew;
                                 dateTime = DateTime.Now;
                             });
+
+                            if (File.Exists(selectedLocalFilePath)) {
+                                File.Delete(selectedLocalFilePath);
+                            }
+                            File.Move(Path.Combine(_berkas.DownloadFolderPath, item.Name), selectedLocalFilePath);
 
                             Process.Start(new ProcessStartInfo {
                                 Arguments = Path.GetDirectoryName(selectedLocalFilePath),
