@@ -1407,18 +1407,14 @@ namespace GoogleCloudStorage.Panels {
                             CGcsDownloadProgress progressOld = null;
                             DateTime dateTime = DateTime.Now;
 
-                            CGcsDownloadProgress existingFile = null;
+                            long existingFileSize = 0;
                             string fileTempPath = Path.Combine(this._berkas.DownloadFolderPath, item.Name);
                             if (File.Exists(fileTempPath)) {
-                                existingFile = new CGcsDownloadProgress {
-                                    BytesDownloaded = new FileInfo(fileTempPath).Length
-                                };
+                                existingFileSize = new FileInfo(fileTempPath).Length;
                             }
 
                             await _gcs.DownloadFile((GcsObject) item, selectedLocalFilePath, (progressNew) => {
-                                if (existingFile != null) {
-                                    progressNew.BytesDownloaded += existingFile.BytesDownloaded;
-                                }
+                                progressNew.BytesDownloaded += existingFileSize;
                                 onGoingDownloadProgress.Report(new {
                                     dgvr = dataGridViewRow,
                                     sz = item.Size,
