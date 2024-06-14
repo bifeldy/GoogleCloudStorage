@@ -153,6 +153,7 @@ namespace GoogleCloudStorage.Panels {
                 lvColumnSorter = new ListViewColumnSorter();
                 lvRemote.ListViewItemSorter = lvColumnSorter;
 
+                CheckIsAdmin();
                 CheckWeeklyUpload();
 
                 timerQueue.Enabled = true;
@@ -516,6 +517,27 @@ namespace GoogleCloudStorage.Panels {
             onWriteLogProgress = new Progress<string>(text => {
                 txtLog.Text += Environment.NewLine + text + Environment.NewLine;
             });
+        }
+
+        private async void CheckIsAdmin() {
+            try {
+                string isAdm = await _db.SQLite_ExecScalar<string>(@"
+                    SELECT isadm FROM users
+                    WHERE uname = :uname
+                ", new List<CDbQueryParamBind> {
+                    new CDbQueryParamBind { NAME = "uname", VALUE = _db.LoggedInUsername }
+                });
+                if (isAdm.ToUpper() == "Y") {
+                    btnDownload.Visible = true;
+                    btnDdl.Visible = true;
+                    lblExp.Visible = true;
+                    dtpExp.Visible = true;
+                }
+            }
+            catch (Exception ex) {
+                _logger.WriteError(ex);
+                MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private async void CheckWeeklyUpload() {
@@ -1319,11 +1341,11 @@ namespace GoogleCloudStorage.Panels {
                                 await _db.SQLite_ExecQuery(sql, param);
 
                                 await _db.SQLite_ExecQuery(@"
-                                        DELETE FROM upload_chunk
-                                        WHERE file_md5 = :file_md5
-                                    ", new List<CDbQueryParamBind> {
-                                        new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 }
-                                    });
+                                    DELETE FROM upload_chunk
+                                    WHERE file_md5 = :file_md5
+                                ", new List<CDbQueryParamBind> {
+                                    new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 }
+                                });
                             }
                             catch (Exception ex) {
                                 _logger.WriteError(ex);

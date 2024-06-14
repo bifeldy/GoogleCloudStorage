@@ -60,7 +60,7 @@ namespace GoogleCloudStorage.Panels {
             this.imageList = new System.Windows.Forms.ImageList(this.components);
             this.cbDeleteOnComplete = new System.Windows.Forms.CheckBox();
             this.cbReplaceIfExist = new System.Windows.Forms.CheckBox();
-            this.Expired = new System.Windows.Forms.Label();
+            this.lblExp = new System.Windows.Forms.Label();
             this.dtpExp = new System.Windows.Forms.DateTimePicker();
             this.timerQueue = new System.Windows.Forms.Timer(this.components);
             this.label2 = new System.Windows.Forms.Label();
@@ -315,6 +315,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnDownload.TabIndex = 29;
             this.btnDownload.Text = "Simpan Ke Lokal ...";
             this.btnDownload.UseVisualStyleBackColor = true;
+            this.btnDownload.Visible = false;
             this.btnDownload.Click += new System.EventHandler(this.BtnDownload_Click);
             // 
             // btnDdl
@@ -330,6 +331,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnDdl.TabIndex = 30;
             this.btnDdl.Text = "Buat Link Download";
             this.btnDdl.UseVisualStyleBackColor = true;
+            this.btnDdl.Visible = false;
             this.btnDdl.Click += new System.EventHandler(this.BtnDdl_Click);
             // 
             // tabUpDownProgress
@@ -504,15 +506,16 @@ namespace GoogleCloudStorage.Panels {
             this.cbReplaceIfExist.Text = "Timpa File Yang Sudah Ada";
             this.cbReplaceIfExist.UseVisualStyleBackColor = true;
             // 
-            // Expired
+            // lblExp
             // 
-            this.Expired.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.Expired.AutoSize = true;
-            this.Expired.Location = new System.Drawing.Point(25, 448);
-            this.Expired.Name = "Expired";
-            this.Expired.Size = new System.Drawing.Size(28, 13);
-            this.Expired.TabIndex = 36;
-            this.Expired.Text = "Exp.";
+            this.lblExp.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.lblExp.AutoSize = true;
+            this.lblExp.Location = new System.Drawing.Point(25, 448);
+            this.lblExp.Name = "lblExp";
+            this.lblExp.Size = new System.Drawing.Size(28, 13);
+            this.lblExp.TabIndex = 36;
+            this.lblExp.Text = "Exp.";
+            this.lblExp.Visible = false;
             // 
             // dtpExp
             // 
@@ -523,6 +526,7 @@ namespace GoogleCloudStorage.Panels {
             this.dtpExp.Name = "dtpExp";
             this.dtpExp.Size = new System.Drawing.Size(155, 20);
             this.dtpExp.TabIndex = 37;
+            this.dtpExp.Visible = false;
             // 
             // timerQueue
             // 
@@ -568,7 +572,7 @@ namespace GoogleCloudStorage.Panels {
             this.Controls.Add(this.numMaxProcess);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.dtpExp);
-            this.Controls.Add(this.Expired);
+            this.Controls.Add(this.lblExp);
             this.Controls.Add(this.cbReplaceIfExist);
             this.Controls.Add(this.cbDeleteOnComplete);
             this.Controls.Add(this.btnExportLaporan);
@@ -647,7 +651,7 @@ namespace GoogleCloudStorage.Panels {
         private System.Windows.Forms.ImageList imageList;
         private System.Windows.Forms.CheckBox cbDeleteOnComplete;
         private System.Windows.Forms.CheckBox cbReplaceIfExist;
-        private System.Windows.Forms.Label Expired;
+        private System.Windows.Forms.Label lblExp;
         private System.Windows.Forms.DateTimePicker dtpExp;
         private System.Windows.Forms.Timer timerQueue;
         private System.Windows.Forms.Label label2;
