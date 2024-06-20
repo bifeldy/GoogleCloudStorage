@@ -151,7 +151,7 @@ namespace GoogleCloudStorage.Forms {
 
         public void SysTray_MenuExit(object sender, EventArgs e) {
             string title = "Good Bye~ (｡>﹏<｡)";
-            string msg = _app.Author + Environment.NewLine + "© 2022 :: IT SD 03";
+            string msg = _app.Author + Environment.NewLine + "© 2023 :: IT S/SD 03";
             MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
             sysTrayNotifyIcon.Dispose();
             _app.Exit();

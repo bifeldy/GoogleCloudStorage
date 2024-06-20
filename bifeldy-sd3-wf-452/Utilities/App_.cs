@@ -11,6 +11,7 @@
  * 
  */
 
+using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
@@ -38,7 +39,7 @@ namespace GoogleCloudStorage.Utilities {
         public CApp(IConfig config) : base(config) {
             ScreenWidth = Screen.PrimaryScreen.WorkingArea.Width;
             ScreenHeight = Screen.PrimaryScreen.WorkingArea.Height;
-            Author = "B. Bias A. Ch. :: bias@indomaret.co.id";
+            Author = "sd3@indomaret.co.id" + Environment.NewLine + "ssd3@indomaret.co.id";
             ListDcCanUse = new List<string> { /* "HO", "INDUK", "DEPO", "SEWA", "FROZEN", "PERISHABLE", "LPG" */ };
         }
 

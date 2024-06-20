@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("PT. Indomarco Prismatama")]
 [assembly: AssemblyProduct("GoogleCloudStorage")]
-[assembly: AssemblyCopyright("Bifeldy © 2024")]
+[assembly: AssemblyCopyright("Bifeldy © 2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
