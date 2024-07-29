@@ -1292,7 +1292,7 @@ namespace GoogleCloudStorage.Panels {
                                 });
                                 progressOld = progressNew;
                                 dateTime = DateTime.Now;
-                            });
+                            }, true);
                         }
 
                         if (uploaded.Exception == null && uploaded.Status == EGcsUploadStatus.Completed) {
@@ -1446,7 +1446,7 @@ namespace GoogleCloudStorage.Panels {
                                 });
                                 progressOld = progressNew;
                                 dateTime = DateTime.Now;
-                            });
+                            }, true);
 
                             if (File.Exists(selectedLocalFilePath)) {
                                 File.Delete(selectedLocalFilePath);
