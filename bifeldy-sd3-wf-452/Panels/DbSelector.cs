@@ -54,7 +54,7 @@ namespace GoogleCloudStorage.Panels {
             // Create & Show `CekProgram` Panel
             try {
                 if (!mainForm.PanelContainer.Controls.ContainsKey("CCekProgram")) {
-                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.ResolveClass<CCekProgram>());
+                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.Resolve<CCekProgram>());
                 }
                 mainForm.PanelContainer.Controls["CCekProgram"].BringToFront();
             }

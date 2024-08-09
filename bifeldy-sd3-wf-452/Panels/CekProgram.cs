@@ -164,9 +164,9 @@ namespace GoogleCloudStorage.Panels {
 
             // Create & Show `Login` Panel
             try {
-                CLogin login = CProgram.Bifeldyz.ResolveClass<CLogin>();
+                CLogin login = CProgram.Bifeldyz.Resolve<CLogin>();
                 if (!mainForm.PanelContainer.Controls.ContainsKey("CLogin")) {
-                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.ResolveClass<CLogin>());
+                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.Resolve<CLogin>());
                 }
                 mainForm.PanelContainer.Controls["CLogin"].BringToFront();
                 bool bypassLogin = _config.Get<bool>("BypassLogin", bool.Parse(_app.GetConfig("bypass_login")));

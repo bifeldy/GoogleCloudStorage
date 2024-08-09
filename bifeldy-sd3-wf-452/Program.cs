@@ -12,6 +12,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -21,6 +22,7 @@ using bifeldy_sd3_lib_452;
 
 using GoogleCloudStorage.Forms;
 using GoogleCloudStorage.SqlServerTypes;
+using GoogleCloudStorage.Utilities;
 
 namespace GoogleCloudStorage {
 
@@ -73,13 +75,19 @@ namespace GoogleCloudStorage {
                     //
                     // Kalau Via Resolve DI, Enaknya Bisa Lanjut Pakai DI Juga Di Constructor
                     //
-                    //     CReportLaporan reportLaporan = CProgram.Bifeldyz.ResolveClass<CReportLaporan>();
+                    //     CReportLaporan reportLaporan = CProgram.Bifeldyz.Resolve<CReportLaporan>();
                     //
                     Bifeldyz.RegisterDiClass<CMainForm>(false);
                     Bifeldyz.RegisterDiClass<CReportLaporan>(false);
 
                     using (dynamic lifetimeScope = Bifeldyz.BeginLifetimeScope()) {
-                        Application.Run(Bifeldyz.ResolveClass<CMainForm>());
+                        IApp _app = Bifeldyz.Resolve<IApp>();
+                        string changeLog = Path.Combine(_app.AppLocation, "ChangeLog.txt");
+                        if (File.Exists(changeLog)) {
+                            string cl = File.ReadAllText(changeLog);
+                            MessageBox.Show(cl, $"[ChangeLog] {_app.AppName}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        Application.Run(Bifeldyz.Resolve<CMainForm>());
                     }
                 }
                 else {

@@ -94,7 +94,7 @@ namespace GoogleCloudStorage.Panels {
             // Create & Show `MainPanel`
             try {
                 if (!mainForm.PanelContainer.Controls.ContainsKey("CMainPanel")) {
-                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.ResolveClass<CMainPanel>());
+                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.Resolve<CMainPanel>());
                 }
                 mainForm.PanelContainer.Controls["CMainPanel"].BringToFront();
             }
