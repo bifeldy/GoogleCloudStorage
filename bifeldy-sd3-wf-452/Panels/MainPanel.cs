@@ -1176,25 +1176,12 @@ namespace GoogleCloudStorage.Panels {
             return false;
         }
 
-        private async Task AddQueue(string filePath, string fileNextPath = null) {
-            string[] arrRemoteDir = this.txtDirPath.Text.Split('/');
-            string targetFolderId = arrRemoteDir[arrRemoteDir.Length - 1];
-
-            var fileInfo = new FileInfo(filePath);
-
-            if (this.CheckProgressIsRunning(filePath, $"Google://{targetFolderId}/{fileInfo.Name}")) {
-                throw new Exception($"Proses {fileInfo.Name} sedang berjalan");
-            }
-
-            string allowedMime = this._config.Get<string>("LocalAllowedFileMime", this._app.GetConfig("local_allowed_file_mime"));
-            string selectedMime = this._chiper.GetMime(filePath);
-            if (string.IsNullOrEmpty(allowedMime) || selectedMime != allowedMime) {
-                throw new Exception("Jenis MiMe file salah");
-            }
-
-            string signFull = this._config.Get<string>("LocalAllowedFileSign", this._app.GetConfig("local_allowed_file_sign"));
-            if (string.IsNullOrEmpty(signFull)) {
+        private bool CheckSign(FileInfo fileInfo, string signFull, bool isRequired = true) {
+            if (isRequired && string.IsNullOrEmpty(signFull)) {
                 throw new Exception("Tidak ada tanda tangan file");
+            }
+            else if (!isRequired && string.IsNullOrEmpty(signFull)) {
+                return true;
             }
 
             string[] signSplit = signFull.Split(' ');
@@ -1213,7 +1200,7 @@ namespace GoogleCloudStorage.Panels {
                 }
             }
 
-            using (var reader = new BinaryReader(new FileStream(filePath, FileMode.Open))) {
+            using (var reader = new BinaryReader(new FileStream(fileInfo.FullName, FileMode.Open))) {
                 byte[] buff = new byte[minFileSize];
                 reader.BaseStream.Seek(0, SeekOrigin.Begin);
                 reader.Read(buff, 0, buff.Length);
@@ -1222,6 +1209,35 @@ namespace GoogleCloudStorage.Panels {
                         continue;
                     }
 
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private async Task AddQueue(string filePath, string fileNextPath = null) {
+            string[] arrRemoteDir = this.txtDirPath.Text.Split('/');
+            string targetFolderId = arrRemoteDir[arrRemoteDir.Length - 1];
+
+            var fileInfo = new FileInfo(filePath);
+
+            if (this.CheckProgressIsRunning(filePath, $"Google://{targetFolderId}/{fileInfo.Name}")) {
+                throw new Exception($"Proses {fileInfo.Name} sedang berjalan");
+            }
+
+            string allowedMime = this._config.Get<string>("LocalAllowedFileMime", this._app.GetConfig("local_allowed_file_mime"));
+            string selectedMime = this._chiper.GetMime(filePath);
+            if (string.IsNullOrEmpty(allowedMime) || selectedMime != allowedMime) {
+                throw new Exception("Jenis MiMe file salah");
+            }
+
+            string fullSign = this._config.Get<string>("LocalAllowedFilePrimary", this._app.GetConfig("local_allowed_file_sign_primary"));
+            bool checkSign = this.CheckSign(fileInfo, fullSign);
+            if (!checkSign) {
+                fullSign = this._config.Get<string>("LocalAllowedFileSignSecondary", this._app.GetConfig("local_allowed_file_sign_secondary"));
+                checkSign = this.CheckSign(fileInfo, fullSign, false);
+                if (!checkSign) {
                     throw new Exception("File rusak / corrupt / Tanda tangan tidak sesuai");
                 }
             }
