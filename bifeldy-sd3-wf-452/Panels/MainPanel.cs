@@ -1176,46 +1176,6 @@ namespace GoogleCloudStorage.Panels {
             return false;
         }
 
-        private bool CheckSign(FileInfo fileInfo, string signFull, bool isRequired = true) {
-            if (isRequired && string.IsNullOrEmpty(signFull)) {
-                throw new Exception("Tidak ada tanda tangan file");
-            }
-            else if (!isRequired && string.IsNullOrEmpty(signFull)) {
-                return true;
-            }
-
-            string[] signSplit = signFull.Split(' ');
-            int minFileSize = signSplit.Length;
-            if (fileInfo.Length < minFileSize) {
-                throw new Exception("Isi konten file tidak sesuai");
-            }
-
-            int[] intList = new int[minFileSize];
-            for (int i = 0; i < intList.Length; i++) {
-                if (signSplit[i] == "??") {
-                    intList[i] = -1;
-                }
-                else {
-                    intList[i] = int.Parse(signSplit[i], NumberStyles.HexNumber);
-                }
-            }
-
-            using (var reader = new BinaryReader(new FileStream(fileInfo.FullName, FileMode.Open))) {
-                byte[] buff = new byte[minFileSize];
-                reader.BaseStream.Seek(0, SeekOrigin.Begin);
-                reader.Read(buff, 0, buff.Length);
-                for (int i = 0; i < intList.Length; i++) {
-                    if (intList[i] == -1 || buff[i] == intList[i]) {
-                        continue;
-                    }
-
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         private async Task AddQueue(string filePath, string fileNextPath = null) {
             string[] arrRemoteDir = this.txtDirPath.Text.Split('/');
             string targetFolderId = arrRemoteDir[arrRemoteDir.Length - 1];
@@ -1233,10 +1193,10 @@ namespace GoogleCloudStorage.Panels {
             }
 
             string fullSign = this._config.Get<string>("LocalAllowedFilePrimary", this._app.GetConfig("local_allowed_file_sign_primary"));
-            bool checkSign = this.CheckSign(fileInfo, fullSign);
+            bool checkSign = this._berkas.CheckSign(fileInfo, fullSign);
             if (!checkSign) {
                 fullSign = this._config.Get<string>("LocalAllowedFileSignSecondary", this._app.GetConfig("local_allowed_file_sign_secondary"));
-                checkSign = this.CheckSign(fileInfo, fullSign, false);
+                checkSign = this._berkas.CheckSign(fileInfo, fullSign, false);
                 if (!checkSign) {
                     throw new Exception("File rusak / corrupt / Tanda tangan tidak sesuai");
                 }
