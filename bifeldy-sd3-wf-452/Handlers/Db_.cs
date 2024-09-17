@@ -41,7 +41,7 @@ namespace GoogleCloudStorage.Handlers {
             IMsSQL mssql,
             ISqlite sqlite
         ) : base(app, config, oracle, postgres, mssql, sqlite) {
-            _app = app;
+            this._app = app;
         }
 
     }

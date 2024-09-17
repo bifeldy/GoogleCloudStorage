@@ -37,10 +37,10 @@ namespace GoogleCloudStorage.Utilities {
         public List<string> ListDcCanUse { get; }
 
         public CApp(IConfig config) : base(config) {
-            ScreenWidth = Screen.PrimaryScreen.WorkingArea.Width;
-            ScreenHeight = Screen.PrimaryScreen.WorkingArea.Height;
-            Author = "sd3@indomaret.co.id" + Environment.NewLine + "ssd3@indomaret.co.id";
-            ListDcCanUse = new List<string> { /* "HO", "INDUK", "DEPO", "SEWA", "FROZEN", "PERISHABLE", "LPG" */ };
+            this.ScreenWidth = Screen.PrimaryScreen.WorkingArea.Width;
+            this.ScreenHeight = Screen.PrimaryScreen.WorkingArea.Height;
+            this.Author = "sd3@indomaret.co.id" + Environment.NewLine + "ssd3@indomaret.co.id";
+            this.ListDcCanUse = new List<string> { /* "HO", "INDUK", "DEPO", "SEWA", "FROZEN", "PERISHABLE", "LPG" */ };
         }
 
         public void Exit() => Application.Exit();

@@ -23,7 +23,7 @@ namespace GoogleCloudStorage.Forms {
         private bool isInitialized = false;
 
         public CReportLaporan() {
-            InitializeComponent();
+            this.InitializeComponent();
         }
 
         public bool SetLaporan(DataTable dtReport, List<ReportParameter> paramList, string rdlcPath, string dsName) {
@@ -31,36 +31,40 @@ namespace GoogleCloudStorage.Forms {
             if (rdlcPath == null || dsName == null) {
                 isReady = false;
             }
+
             if (dtReport == null || dtReport.Rows.Count <= 0) {
                 isReady = false;
             }
+
             if (paramList == null || paramList.Count <= 0) {
                 isReady = false;
             }
+
             if (isReady) {
-                rptViewer.LocalReport.ReportPath = rdlcPath;
-                rptViewer.LocalReport.DataSources.Add(new ReportDataSource(dsName, dtReport));
-                rptViewer.LocalReport.SetParameters(paramList);
+                this.rptViewer.LocalReport.ReportPath = rdlcPath;
+                this.rptViewer.LocalReport.DataSources.Add(new ReportDataSource(dsName, dtReport));
+                this.rptViewer.LocalReport.SetParameters(paramList);
             }
             else {
                 MessageBox.Show("Tidak Ada Data", $"Report Viewer :: {dsName}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+
             return isReady;
         }
 
         private void CReportLaporan_FormClosing(object sender, FormClosingEventArgs e) {
-            rptViewer.LocalReport.ReportPath = null;
-            rptViewer.LocalReport.DataSources.Clear();
-            rptViewer.RefreshReport();
-            Dispose();
+            this.rptViewer.LocalReport.ReportPath = null;
+            this.rptViewer.LocalReport.DataSources.Clear();
+            this.rptViewer.RefreshReport();
+            this.Dispose();
         }
 
         private void CReportLaporan_Load(object sender, System.EventArgs e) {
-            if (!isInitialized) {
+            if (!this.isInitialized) {
 
-                rptViewer.RefreshReport();
+                this.rptViewer.RefreshReport();
 
-                isInitialized = true;
+                this.isInitialized = true;
             }
         }
 

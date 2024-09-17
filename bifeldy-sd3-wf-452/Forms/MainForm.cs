@@ -39,67 +39,67 @@ namespace GoogleCloudStorage.Forms {
         private bool isInitialized = false;
 
         public CMainForm(IApp app, IDb db, IConfig config) {
-            _app = app;
-            _db = db;
-            _config = config;
+            this._app = app;
+            this._db = db;
+            this._config = config;
 
-            InitializeComponent();
-            OnInit();
+            this.InitializeComponent();
+            this.OnInit();
         }
 
-        public Panel PanelContainer => panelContainer;
+        public Panel PanelContainer => this.panelContainer;
 
-        public StatusStrip StatusStripContainer => statusStripContainer;
+        public StatusStrip StatusStripContainer => this.statusStripContainer;
 
         private void OnInit() {
 
             // Reclaim Space From Right StatusBar Grip
-            statusStripContainer.Padding = new Padding(
-                statusStripContainer.Padding.Left,
-                statusStripContainer.Padding.Top,
-                statusStripContainer.Padding.Left,
-                statusStripContainer.Padding.Bottom
+            this.statusStripContainer.Padding = new Padding(
+                this.statusStripContainer.Padding.Left,
+                this.statusStripContainer.Padding.Top,
+                this.statusStripContainer.Padding.Left,
+                this.statusStripContainer.Padding.Bottom
             );
 
-            Text = _app.AppName;
+            this.Text = this._app.AppName;
 
-            sysTrayNotifyIcon.Text = _app.AppName;
-            sysTrayNotifyIcon.DoubleClick += SysTray_DoubleClick;
+            this.sysTrayNotifyIcon.Text = this._app.AppName;
+            this.sysTrayNotifyIcon.DoubleClick += this.SysTray_DoubleClick;
 
-            sysTrayToolStripMenuItemApp.Text = $"{_app.CurrentProcess.Id} (0x{_app.CurrentProcess.MainModule.BaseAddress})";
-            sysTrayToolStripMenuItemNICs.Image = SystemIcons.Question.ToBitmap();
-            sysTrayToolStripMenuItemDatabases.Image = SystemIcons.Warning.ToBitmap();
+            this.sysTrayToolStripMenuItemApp.Text = $"{this._app.CurrentProcess.Id} (0x{this._app.CurrentProcess.MainModule.BaseAddress})";
+            this.sysTrayToolStripMenuItemNICs.Image = SystemIcons.Question.ToBitmap();
+            this.sysTrayToolStripMenuItemDatabases.Image = SystemIcons.Warning.ToBitmap();
         }
 
         private async void CMainForm_Load(object sender, EventArgs e) {
-            if (!isInitialized) {
+            if (!this.isInitialized) {
 
-                statusStripContainer.Items["statusStripIpAddress"].Text = "- .: " + string.Join(", ", _app.GetAllIpAddress()) + " :. -";
-                statusStripContainer.Items["statusStripAppVersion"].Text = $"v{_app.AppVersion}";
+                this.statusStripContainer.Items["statusStripIpAddress"].Text = "- .: " + string.Join(", ", this._app.GetAllIpAddress()) + " :. -";
+                this.statusStripContainer.Items["statusStripAppVersion"].Text = $"v{this._app.AppVersion}";
 
-                ShowDbSelectorPanel();
-                await Task.Run((Action) ShakeForm);
+                this.ShowDbSelectorPanel();
+                await Task.Run((Action)this.ShakeForm);
 
-                isInitialized = true;
+                this.isInitialized = true;
             }
         }
 
         private void CMainForm_FormClosing(object sender, FormClosingEventArgs e) {
             if (e.CloseReason == CloseReason.UserClosing) {
-                bool minimizeOnClose = _config.Get<bool>("MinimizeOnClose", bool.Parse(_app.GetConfig("minimize_on_close")));
+                bool minimizeOnClose = this._config.Get<bool>("MinimizeOnClose", bool.Parse(this._app.GetConfig("minimize_on_close")));
                 if (!minimizeOnClose) {
-                    SysTray_MenuExit(sender, EventArgs.Empty);
+                    this.SysTray_MenuExit(sender, EventArgs.Empty);
                 }
                 else {
-                    lastFormWindowState = WindowState;
-                    sysTrayNotifyIcon.BalloonTipIcon = ToolTipIcon.Info;
-                    sysTrayNotifyIcon.BalloonTipTitle = "Aplikasi Berjalan Di Belakang Layar";
-                    sysTrayNotifyIcon.BalloonTipText = "Klik Icon 2x Untuk Membuka Kembali";
-                    sysTrayNotifyIcon.BalloonTipClicked += SysTray_DoubleClick;
-                    sysTrayNotifyIcon.ShowBalloonTip(500);
-                    WindowState = FormWindowState.Minimized;
-                    ShowInTaskbar = false;
-                    Hide();
+                    this.lastFormWindowState = this.WindowState;
+                    this.sysTrayNotifyIcon.BalloonTipIcon = ToolTipIcon.Info;
+                    this.sysTrayNotifyIcon.BalloonTipTitle = "Aplikasi Berjalan Di Belakang Layar";
+                    this.sysTrayNotifyIcon.BalloonTipText = "Klik Icon 2x Untuk Membuka Kembali";
+                    this.sysTrayNotifyIcon.BalloonTipClicked += this.SysTray_DoubleClick;
+                    this.sysTrayNotifyIcon.ShowBalloonTip(500);
+                    this.WindowState = FormWindowState.Minimized;
+                    this.ShowInTaskbar = false;
+                    this.Hide();
                     e.Cancel = true;
                 }
             }
@@ -110,16 +110,17 @@ namespace GoogleCloudStorage.Forms {
             // Create And Show `DbSelector` Panel
             try {
                 CDbSelector dbSelector = null;
-                if (!panelContainer.Controls.ContainsKey("CDbSelector")) {
+                if (!this.panelContainer.Controls.ContainsKey("CDbSelector")) {
                     dbSelector = CProgram.Bifeldyz.Resolve<CDbSelector>();
-                    panelContainer.Controls.Add(dbSelector);
+                    this.panelContainer.Controls.Add(dbSelector);
                 }
-                panelContainer.Controls["CDbSelector"].BringToFront();
-                if (_app.ListDcCanUse.Count == 1 && _app.ListDcCanUse.Contains("HO")) {
+
+                this.panelContainer.Controls["CDbSelector"].BringToFront();
+                if (this._app.ListDcCanUse.Count == 1 && this._app.ListDcCanUse.Contains("HO")) {
                     dbSelector.DchoOnlyBypass(this, EventArgs.Empty);
                 }
                 else {
-                    bool autoDb = _config.Get<bool>("AutoDb", bool.Parse(_app.GetConfig("auto_db")));
+                    bool autoDb = this._config.Get<bool>("AutoDb", bool.Parse(this._app.GetConfig("auto_db")));
                     if (autoDb) {
                         dbSelector.AutoRunModeDefaultPostgre(this, EventArgs.Empty);
                     }
@@ -131,11 +132,11 @@ namespace GoogleCloudStorage.Forms {
         }
 
         public void HideLogo() {
-            imgLogo.Visible = false;
+            this.imgLogo.Visible = false;
         }
 
         private void StatusStripIpAddress_Click(object sender, EventArgs e) {
-            string[] ipsMacs = _app.GetIpMacAddress()
+            string[] ipsMacs = this._app.GetIpMacAddress()
                 .Select(d => $"{d.DESCRIPTION}\r\n{d.MAC_ADDRESS}\r\n{d.IP_V4_ADDRESS}\r\n{d.IP_V6_ADDRESS}\r\n\r\n")
                 .ToArray();
             string ipMac = string.Join(Environment.NewLine, ipsMacs).Replace("\r\n\r\n", "\r\n");
@@ -143,52 +144,53 @@ namespace GoogleCloudStorage.Forms {
         }
 
         public void SysTray_DoubleClick(object sender, EventArgs e) {
-            Show();
-            ShowInTaskbar = true;
-            WindowState = lastFormWindowState;
-            Activate();
+            this.Show();
+            this.ShowInTaskbar = true;
+            this.WindowState = this.lastFormWindowState;
+            this.Activate();
         }
 
         public void SysTray_MenuExit(object sender, EventArgs e) {
             string title = "Good Bye~ (｡>﹏<｡)";
-            string msg = _app.Author + Environment.NewLine + "© 2023 :: IT S/SD 03";
+            string msg = this._app.Author + Environment.NewLine + "© 2023 :: IT S/SD 03";
             MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
-            sysTrayNotifyIcon.Dispose();
-            _app.Exit();
+            this.sysTrayNotifyIcon.Dispose();
+            this._app.Exit();
         }
 
         private void TimerIpAddress_Tick(object sender, EventArgs e) {
-            string fullText = statusStripContainer.Items["statusStripIpAddress"].Text;
+            string fullText = this.statusStripContainer.Items["statusStripIpAddress"].Text;
             string firstLetter = fullText.Substring(0, 1);
             string startText = fullText.Substring(1, fullText.Length - 1);
             string finalText = startText + firstLetter;
-            statusStripContainer.Items["statusStripIpAddress"].Text = finalText;
+            this.statusStripContainer.Items["statusStripIpAddress"].Text = finalText;
         }
 
         private void ShakeForm() {
             Thread.Sleep(60);
-            if (InvokeRequired) {
-                Invoke(new DelegateFunction(ShakeForm));
+            if (this.InvokeRequired) {
+                this.Invoke(new DelegateFunction(this.ShakeForm));
             }
             else {
-                Point original = Location;
-                Random rnd = new Random(1337);
+                Point original = this.Location;
+                var rnd = new Random(1337);
                 const int shake_amplitude = 10;
                 for (int i = 0; i < 40; i++) {
-                    Location = new Point(
+                    this.Location = new Point(
                         original.X + rnd.Next(-shake_amplitude, shake_amplitude),
                         original.Y + rnd.Next(-shake_amplitude, shake_amplitude)
                     );
                     Thread.Sleep(20);
                 }
-                Location = original;
+
+                this.Location = original;
             }
         }
 
         private void StatusStripDbName_Click(object sender, EventArgs e) {
-            if (_app.DebugMode) {
+            if (this._app.DebugMode) {
                 MessageBox.Show(
-                    _db.GetAllAvailableDbConnectionsString(),
+                    this._db.GetAllAvailableDbConnectionsString(),
                     "Koneksi Database",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information

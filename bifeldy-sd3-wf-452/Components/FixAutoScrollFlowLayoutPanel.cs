@@ -20,7 +20,7 @@ namespace GoogleCloudStorage.Components {
 
         protected override System.Drawing.Point ScrollToControl(Control activeControl) {
             // return base.ScrollToControl(activeControl);
-            return AutoScrollPosition;
+            return this.AutoScrollPosition;
         }
 
     }

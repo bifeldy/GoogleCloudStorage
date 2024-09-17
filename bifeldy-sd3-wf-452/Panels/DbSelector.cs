@@ -28,35 +28,36 @@ namespace GoogleCloudStorage.Panels {
         private bool isInitialized = false;
 
         public CDbSelector(IApp app) {
-            _app = app;
+            this._app = app;
 
-            InitializeComponent();
-            OnInit();
+            this.InitializeComponent();
+            this.OnInit();
         }
 
         private void OnInit() {
-            Dock = DockStyle.Fill;
+            this.Dock = DockStyle.Fill;
         }
 
         private void CDbSelector_Load(object sender, EventArgs e) {
-            if (!isInitialized) {
+            if (!this.isInitialized) {
 
-                mainForm = (CMainForm) Parent.Parent;
+                this.mainForm = (CMainForm)this.Parent.Parent;
 
-                isInitialized = true;
+                this.isInitialized = true;
             }
         }
 
         private void ShowCheckProgramPanel() {
-            btnOracle.Enabled = false;
-            btnPostgre.Enabled = false;
+            this.btnOracle.Enabled = false;
+            this.btnPostgre.Enabled = false;
 
             // Create & Show `CekProgram` Panel
             try {
-                if (!mainForm.PanelContainer.Controls.ContainsKey("CCekProgram")) {
-                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.Resolve<CCekProgram>());
+                if (!this.mainForm.PanelContainer.Controls.ContainsKey("CCekProgram")) {
+                    this.mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.Resolve<CCekProgram>());
                 }
-                mainForm.PanelContainer.Controls["CCekProgram"].BringToFront();
+
+                this.mainForm.PanelContainer.Controls["CCekProgram"].BringToFront();
             }
             catch (Exception ex) {
                 MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -64,21 +65,21 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private void BtnOracle_Click(object sender, EventArgs e) {
-            _app.IsUsingPostgres = false;
-            ShowCheckProgramPanel();
+            this._app.IsUsingPostgres = false;
+            this.ShowCheckProgramPanel();
         }
 
         private void BtnPostgre_Click(object sender, EventArgs e) {
-            _app.IsUsingPostgres = true;
-            ShowCheckProgramPanel();
+            this._app.IsUsingPostgres = true;
+            this.ShowCheckProgramPanel();
         }
 
         public void DchoOnlyBypass(object sender, EventArgs e) {
-            BtnOracle_Click(sender, e);
+            this.BtnOracle_Click(sender, e);
         }
 
         public void AutoRunModeDefaultPostgre(object sender, EventArgs e) {
-            BtnPostgre_Click(sender, e);
+            this.BtnPostgre_Click(sender, e);
         }
 
     }

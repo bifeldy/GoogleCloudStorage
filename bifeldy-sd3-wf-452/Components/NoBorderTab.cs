@@ -24,7 +24,7 @@ namespace GoogleCloudStorage.Components {
         protected override void WndProc(ref Message m) {
 
             // Hide the tab headers at run-time
-            if (m.Msg == TCM_ADJUSTRECT && !DesignMode) {
+            if (m.Msg == TCM_ADJUSTRECT && !this.DesignMode) {
                 m.Result = (IntPtr) 1;
                 return;
             }

@@ -31,20 +31,20 @@ namespace GoogleCloudStorage.Components {
         /// <summary>
         /// Case insensitive comparer object
         /// </summary>
-        private CaseInsensitiveComparer ObjectCompare;
+        private readonly CaseInsensitiveComparer ObjectCompare;
 
         /// <summary>
         /// Class constructor.  Initializes various elements
         /// </summary>
         public ListViewColumnSorter() {
             // Initialize the column to '0'
-            ColumnToSort = 0;
+            this.ColumnToSort = 0;
 
             // Initialize the sort order to 'none'
-            OrderOfSort = SortOrder.None;
+            this.OrderOfSort = SortOrder.None;
 
             // Initialize the CaseInsensitiveComparer object
-            ObjectCompare = new CaseInsensitiveComparer();
+            this.ObjectCompare = new CaseInsensitiveComparer();
         }
 
         /// <summary>
@@ -62,22 +62,22 @@ namespace GoogleCloudStorage.Components {
             listviewY = (ListViewItem) y;
 
             decimal num = 0;
-            if (decimal.TryParse(listviewX.SubItems[ColumnToSort].Text, out num)) {
-                compareResult = decimal.Compare(num, Convert.ToDecimal(listviewY.SubItems[ColumnToSort].Text));
+            if (decimal.TryParse(listviewX.SubItems[this.ColumnToSort].Text, out num)) {
+                compareResult = decimal.Compare(num, Convert.ToDecimal(listviewY.SubItems[this.ColumnToSort].Text));
             }
             else {
                 // Compare the two items
-                compareResult = ObjectCompare.Compare(listviewX.SubItems[ColumnToSort].Text, listviewY.SubItems[ColumnToSort].Text);
+                compareResult = this.ObjectCompare.Compare(listviewX.SubItems[this.ColumnToSort].Text, listviewY.SubItems[this.ColumnToSort].Text);
             }
 
             // Calculate correct return value based on object comparison
-            if (OrderOfSort == SortOrder.Ascending) {
+            if (this.OrderOfSort == SortOrder.Ascending) {
                 // Ascending sort is selected, return normal result of compare operation
                 return compareResult;
             }
-            else if (OrderOfSort == SortOrder.Descending) {
+            else if (this.OrderOfSort == SortOrder.Descending) {
                 // Descending sort is selected, return negative result of compare operation
-                return (-compareResult);
+                return -compareResult;
             }
             else {
                 // Return '0' to indicate they are equal
@@ -90,10 +90,10 @@ namespace GoogleCloudStorage.Components {
         /// </summary>
         public int SortColumn {
             set {
-                ColumnToSort = value;
+                this.ColumnToSort = value;
             }
             get {
-                return ColumnToSort;
+                return this.ColumnToSort;
             }
         }
 
@@ -102,10 +102,10 @@ namespace GoogleCloudStorage.Components {
         /// </summary>
         public SortOrder Order {
             set {
-                OrderOfSort = value;
+                this.OrderOfSort = value;
             }
             get {
-                return OrderOfSort;
+                return this.OrderOfSort;
             }
         }
 

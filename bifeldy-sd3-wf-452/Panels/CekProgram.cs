@@ -37,47 +37,47 @@ namespace GoogleCloudStorage.Panels {
         private bool isInitialized = false;
 
         public CCekProgram(IUpdater updater, IApp app, IDb db, IConfig config) {
-            _updater = updater;
-            _config = config;
-            _app = app;
-            _db = db;
+            this._updater = updater;
+            this._config = config;
+            this._app = app;
+            this._db = db;
 
-            InitializeComponent();
-            OnInit();
+            this.InitializeComponent();
+            this.OnInit();
         }
 
-        public Label LoadingInformation => loadingInformation;
+        public Label LoadingInformation => this.loadingInformation;
 
         private void OnInit() {
-            loadingInformation.Text = "Sedang Mengecek Program ...";
-            Dock = DockStyle.Fill;
+            this.loadingInformation.Text = "Sedang Mengecek Program ...";
+            this.Dock = DockStyle.Fill;
         }
 
         private void CCekProgram_Load(object sender, EventArgs e) {
-            if (!isInitialized) {
+            if (!this.isInitialized) {
 
-                mainForm = (CMainForm) Parent.Parent;
+                this.mainForm = (CMainForm)this.Parent.Parent;
 
-                CheckProgram();
+                this.CheckProgram();
 
-                isInitialized = true;
+                this.isInitialized = true;
             }
         }
 
         private async void CheckProgram() {
-            if (_db.LocalDbOnly) {
+            if (this._db.LocalDbOnly) {
                 await Task.Run(async () => {
                     try {
-                        await _updater.UpdateSqliteDatabase();
+                        await this._updater.UpdateSqliteDatabase();
                     }
                     catch (Exception ex) {
                         MessageBox.Show(ex.Message, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        _app.Exit();
+                        this._app.Exit();
                     }
                 });
             }
 
-            bool autoDb = _config.Get<bool>("AutoDb", bool.Parse(_app.GetConfig("auto_db")));
+            bool autoDb = this._config.Get<bool>("AutoDb", bool.Parse(this._app.GetConfig("auto_db")));
 
             // First DB Run + Check Connection
             bool dbAvailable = false;
@@ -85,14 +85,14 @@ namespace GoogleCloudStorage.Panels {
             string jenisDc = null;
             await Task.Run(async () => {
                 try {
-                    jenisDc = await _db.GetJenisDc();
+                    jenisDc = await this._db.GetJenisDc();
                     dbAvailable = true;
                 }
                 catch (Exception ex1) {
                     if (autoDb) {
-                        _app.IsUsingPostgres = false;
+                        this._app.IsUsingPostgres = false;
                         try {
-                            jenisDc = await _db.GetJenisDc();
+                            jenisDc = await this._db.GetJenisDc();
                             dbAvailable = true;
                         }
                         catch (Exception ex2) {
@@ -105,31 +105,32 @@ namespace GoogleCloudStorage.Panels {
                 }
             });
             if (dbAvailable) {
-                string dbInfo = _db.LocalDbOnly ? "[SQLT]" : $"[{(_app.IsUsingPostgres ? "PG" : "ORCL")}+MSSQL]";
+                string dbInfo = this._db.LocalDbOnly ? "[SQLT]" : $"[{(this._app.IsUsingPostgres ? "PG" : "ORCL")}+MSSQL]";
 
-                mainForm.StatusStripContainer.Items["statusStripDbName"].Text = _db.DbName;
-                mainForm.Text = $"{dbInfo} {mainForm.Text}";
+                this.mainForm.StatusStripContainer.Items["statusStripDbName"].Text = this._db.DbName;
+                this.mainForm.Text = $"{dbInfo} {this.mainForm.Text}";
 
-                if (_app.ListDcCanUse.Count == 0 || _app.ListDcCanUse.Contains(jenisDc)) {
+                if (this._app.ListDcCanUse.Count == 0 || this._app.ListDcCanUse.Contains(jenisDc)) {
 
                     // Check Version
                     string responseCekProgram = null;
                     await Task.Run(async () => {
-                        responseCekProgram = await _db.CekVersi();
+                        responseCekProgram = await this._db.CekVersi();
                     });
                     if (responseCekProgram.ToUpper() == "OKE") {
-                        ShowLoginPanel();
+                        this.ShowLoginPanel();
                     }
                     else if (responseCekProgram.ToUpper().Contains("VERSI")) {
-                        loadingInformation.Text = "Memperbarui Otomatis ...";
+                        this.loadingInformation.Text = "Memperbarui Otomatis ...";
                         bool updated = false;
-                        if (!_app.IsSkipUpdate) {
+                        if (!this._app.IsSkipUpdate) {
                             string verStr = responseCekProgram.Split('=').Last().Trim().Split('v').Last();
                             int verInt = int.Parse(verStr);
                             await Task.Run(() => {
-                                updated = _updater.CheckUpdater(verInt);
+                                updated = this._updater.CheckUpdater(verInt);
                             });
                         }
+
                         if (!updated) {
                             MessageBox.Show(
                                 "Gagal Update Otomatis" + Environment.NewLine + "Silahkan Hubungi IT SSD 03 Untuk Ambil Program Baru" + Environment.NewLine + Environment.NewLine + responseCekProgram,
@@ -137,26 +138,26 @@ namespace GoogleCloudStorage.Panels {
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Error
                             );
-                            _app.Exit();
+                            this._app.Exit();
                         }
                     }
                     else {
                         MessageBox.Show(responseCekProgram, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        _app.Exit();
+                        this._app.Exit();
                     }
                 }
                 else {
                     MessageBox.Show(
-                        $"Program Hanya Dapat Di Jalankan Di DC {Environment.NewLine}{string.Join(", ", _app.ListDcCanUse.ToArray())}",
+                        $"Program Hanya Dapat Di Jalankan Di DC {Environment.NewLine}{string.Join(", ", this._app.ListDcCanUse.ToArray())}",
                         "Program Checker",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
                     );
-                    _app.Exit();
+                    this._app.Exit();
                 }
             }
             else {
-                _app.Exit();
+                this._app.Exit();
             }
         }
 
@@ -165,11 +166,12 @@ namespace GoogleCloudStorage.Panels {
             // Create & Show `Login` Panel
             try {
                 CLogin login = CProgram.Bifeldyz.Resolve<CLogin>();
-                if (!mainForm.PanelContainer.Controls.ContainsKey("CLogin")) {
-                    mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.Resolve<CLogin>());
+                if (!this.mainForm.PanelContainer.Controls.ContainsKey("CLogin")) {
+                    this.mainForm.PanelContainer.Controls.Add(CProgram.Bifeldyz.Resolve<CLogin>());
                 }
-                mainForm.PanelContainer.Controls["CLogin"].BringToFront();
-                bool bypassLogin = _config.Get<bool>("BypassLogin", bool.Parse(_app.GetConfig("bypass_login")));
+
+                this.mainForm.PanelContainer.Controls["CLogin"].BringToFront();
+                bool bypassLogin = this._config.Get<bool>("BypassLogin", bool.Parse(this._app.GetConfig("bypass_login")));
                 if (bypassLogin) {
                     login.ProcessLogin();
                 }

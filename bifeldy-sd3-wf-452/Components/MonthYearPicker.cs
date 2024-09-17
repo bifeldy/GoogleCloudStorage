@@ -23,8 +23,8 @@ namespace GoogleCloudStorage.Components {
 
         // initialize Format/CustomFormat to display only month and year.
         public MonthYearPicker() {
-            Format = DateTimePickerFormat.Custom;
-            CustomFormat = "MMMM yyyy";
+            this.Format = DateTimePickerFormat.Custom;
+            this.CustomFormat = "MMMM yyyy";
         }
 
         // override Format to redefine default value (used by designer)
@@ -48,7 +48,7 @@ namespace GoogleCloudStorage.Components {
 
                     // detect pop-up display and switch view to month selection
                     case -950:
-                        var cal = SendMessage(Handle, DTM_GETMONTHCAL, IntPtr.Zero, IntPtr.Zero);
+                        var cal = SendMessage(this.Handle, DTM_GETMONTHCAL, IntPtr.Zero, IntPtr.Zero);
                         SendMessage(cal, MCM_SETCURRENTVIEW, IntPtr.Zero, (IntPtr) 1);
                         break;
 
@@ -56,11 +56,13 @@ namespace GoogleCloudStorage.Components {
                     case MCN_VIEWCHANGE:
                         var nmviewchange = (NMVIEWCHANGE) Marshal.PtrToStructure(m.LParam, typeof(NMVIEWCHANGE));
                         if (nmviewchange.dwOldView == 1 && nmviewchange.dwNewView == 0) {
-                            SendMessage(Handle, DTM_CLOSEMONTHCAL, IntPtr.Zero, IntPtr.Zero);
+                            SendMessage(this.Handle, DTM_CLOSEMONTHCAL, IntPtr.Zero, IntPtr.Zero);
                         }
+
                         break;
                 }
             }
+
             base.WndProc(ref m);
         }
 

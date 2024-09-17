@@ -36,9 +36,9 @@ namespace GoogleCloudStorage {
 
         [STAThread] // bifeldy-sd3-wf-452.exe -arg0 arg1 --arg2 "a r g 3"
         public static void Main(string[] args) {
-            Process currentProcess = Process.GetCurrentProcess();
+            var currentProcess = Process.GetCurrentProcess();
             Process[] allProcess = Process.GetProcessesByName(currentProcess.ProcessName);
-            using (Mutex mutex = new Mutex(true, currentProcess.MainModule.ModuleName, out bool createdNew)) {
+            using (var mutex = new Mutex(true, currentProcess.MainModule.ModuleName, out bool createdNew)) {
                 if (createdNew) {
                     Application.EnableVisualStyles();
                     Application.SetCompatibleTextRenderingDefault(false);
@@ -87,6 +87,7 @@ namespace GoogleCloudStorage {
                             string cl = File.ReadAllText(changeLog);
                             MessageBox.Show(cl, $"[ChangeLog] {_app.AppName}", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
+
                         Application.Run(Bifeldyz.Resolve<CMainForm>());
                     }
                 }
