@@ -1420,7 +1420,7 @@ namespace GoogleCloudStorage.Panels {
             }
         }
 
-        private async void BtnDownload_Click(object sender, EventArgs e) {
+        private void BtnDownload_Click(object sender, EventArgs e) {
             this.SetIdleBusyStatus(false);
             try {
                 dynamic item = this.lvRemote.SelectedItems[0].Tag;
@@ -1452,7 +1452,7 @@ namespace GoogleCloudStorage.Panels {
                     int idx = this.dgOnProgress.Rows.Add(targetPathLocal, "<<<===", $"Google://{folderId}/{item.Name}");
                     DataGridViewRow dataGridViewRow = this.dgOnProgress.Rows[idx];
 
-                    _ = Task.Run(async () => {
+                    Task.Run(async () => {
                         try {
                             CGcsDownloadProgress progressOld = null;
                             DateTime dateTime = DateTime.Now;
