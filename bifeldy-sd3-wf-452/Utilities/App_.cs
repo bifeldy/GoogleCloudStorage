@@ -40,7 +40,7 @@ namespace GoogleCloudStorage.Utilities {
             this.ScreenWidth = Screen.PrimaryScreen.WorkingArea.Width;
             this.ScreenHeight = Screen.PrimaryScreen.WorkingArea.Height;
             this.Author = "sd3@indomaret.co.id" + Environment.NewLine + "ssd3@indomaret.co.id";
-            this.ListDcCanUse = new List<string> { /* "HO", "INDUK", "DEPO", "SEWA", "FROZEN", "PERISHABLE", "LPG" */ };
+            this.ListDcCanUse = new List<string> { /* "HO", "INDUK", "DEPO", "SEWA", "FROZEN", "PERISHABLE", "LPG", "IPLAZA" */ };
         }
 
         public void Exit() => Application.Exit();

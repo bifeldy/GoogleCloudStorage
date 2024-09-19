@@ -1243,6 +1243,7 @@ namespace GoogleCloudStorage.Panels {
 
             int idx = this.dgOnProgress.Rows.Add(fileLocal, fileUploadDownload, fileRemote);
             DataGridViewRow dgvrOnProgress = this.dgOnProgress.Rows[idx];
+            dgvrOnProgress.Cells[this.dgOnProgress.Columns["dgOnProgress_Status"].Index].Value = "Checking File ...";
 
             if (fileUploadDownload == "===>>>") {
 
@@ -1257,7 +1258,7 @@ namespace GoogleCloudStorage.Panels {
 
                 await Task.Run(async () => {
                     try {
-                        string file_md5 = this._chiper.CalculateMD5(fileInfo.FullName);
+                        string file_md5 = this._chiper.CalculateMD5File(fileInfo.FullName);
                         CGcsUploadProgress uploaded = null;
 
                         using (Stream stream = File.OpenRead(fileLocal)) {
