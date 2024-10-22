@@ -1186,11 +1186,11 @@ namespace GoogleCloudStorage.Panels {
                 throw new Exception($"Proses {fileInfo.Name} sedang berjalan");
             }
 
-            string allowedMime = this._config.Get<string>("LocalAllowedFileMime", this._app.GetConfig("local_allowed_file_mime"));
-            string selectedMime = this._chiper.GetMime(filePath);
-            if (string.IsNullOrEmpty(allowedMime) || selectedMime != allowedMime) {
-                throw new Exception("Jenis MiMe file salah");
-            }
+            // string allowedMime = this._config.Get<string>("LocalAllowedFileMime", this._app.GetConfig("local_allowed_file_mime"));
+            // string selectedMime = this._chiper.GetMime(filePath);
+            // if (string.IsNullOrEmpty(allowedMime) || selectedMime != allowedMime) {
+            //     throw new Exception("Jenis MiMe file salah");
+            // }
 
             string fullSign = this._config.Get<string>("LocalAllowedFilePrimary", this._app.GetConfig("local_allowed_file_sign_primary"));
             bool checkSign = this._berkas.CheckSign(fileInfo, fullSign);
