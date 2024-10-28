@@ -862,63 +862,61 @@ namespace GoogleCloudStorage.Panels {
                     this.btnDownload.Enabled = false;
                     this.btnDdl.Enabled = false;
 
-                    List<GcsObject> objects = null;
                     await Task.Run(async () => {
-                        objects = await this._gcs.ListAllObjects(path);
-                    });
+                        List<GcsObject> objects = await this._gcs.ListAllObjects(path);
 
-                    string file1name_template = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-                    string file2name_template = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
+                        string file1name_template = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
+                        string file2name_template = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
 
-                    var file1 = new List<GcsObject>();
-                    var file2 = new List<GcsObject>();
-                    foreach (GcsObject obj in objects) {
-                        if (obj.Name.ToLower().StartsWith(file1name_template)) {
-                            file1.Add(obj);
+                        var file1 = new List<GcsObject>();
+                        var file2 = new List<GcsObject>();
+                        foreach (GcsObject obj in objects) {
+                            if (obj.Name.ToLower().StartsWith(file1name_template)) {
+                                file1.Add(obj);
+                            }
+
+                            if (obj.Name.ToLower().StartsWith(file2name_template)) {
+                                file2.Add(obj);
+                            }
                         }
 
-                        if (obj.Name.ToLower().StartsWith(file2name_template)) {
-                            file2.Add(obj);
+                        string[] csvColumn = new string[] {
+                            "KODE_DC",
+                            "TAHUN",
+                            "BULAN",
+                            "MINGGU",
+                            "FILE_1_NAME",
+                            "FILE_1_SIZE_BYTES",
+                            "FILE_1_DATE_TIME",
+                            "FILE_2_NAME",
+                            "FILE_2_SIZE_BYTES",
+                            "FILE_2_DATE_TIME"
+                        };
+
+                        string exportPath = Path.Combine(this._csv.CsvFolderPath, $"{DateTime.Now:yyy-MM-dd_HH-mm-ss}.csv");
+                        using (var writer = new StreamWriter(exportPath)) {
+                            writer.WriteLine(string.Join("|", csvColumn).ToUpper());
+                            foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
+                                string fileName = new List<string>(f1.Name.ToLower().Replace("\\", "/").Split('/')).Last();
+                                var fileDate = DateTime.ParseExact(fileName.Split('_').Last().Split('.').First().ToLower(), "yyMMdd", CultureInfo.InvariantCulture);
+                                string fn1 = file1name_template ?? string.Empty;
+                                string newLine = string.Empty;
+                                if (fileName.StartsWith(fn1)) {
+                                    int index = fileName.IndexOf(fn1);
+                                    string xxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
+                                    string dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
+                                    newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{fileName}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
+                                    GcsObject f2 = file2.Find(f => f.Name.EndsWith(xxx_xxxxxx));
+                                    newLine += (f2 is null) ? "||" : $"{f2.Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
+                                    writer.WriteLine(newLine);
+                                }
+                            }
                         }
-                    }
 
-                    string[] csvColumn = new string[] {
-                        "KODE_DC",
-                        "TAHUN",
-                        "BULAN",
-                        "MINGGU",
-                        "FILE_1_NAME",
-                        "FILE_1_SIZE_BYTES",
-                        "FILE_1_DATE_TIME",
-                        "FILE_2_NAME",
-                        "FILE_2_SIZE_BYTES",
-                        "FILE_2_DATE_TIME"
-                    };
-
-                    var sb = new StringBuilder();
-                    sb.AppendLine(string.Join("|", csvColumn));
-
-                    foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
-                        string fileName = new List<string>(f1.Name.ToLower().Replace("\\", "/").Split('/')).Last();
-                        var fileDate = DateTime.ParseExact(fileName.Split('_').Last().Split('.').First().ToLower(), "yyMMdd", CultureInfo.InvariantCulture);
-                        string fn1 = file1name_template ?? string.Empty;
-                        string newLine = string.Empty;
-                        if (fileName.StartsWith(fn1)) {
-                            int index = fileName.IndexOf(fn1);
-                            string xxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
-                            string dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
-                            newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{fileName}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
-                            GcsObject f2 = file2.Find(f => f.Name.EndsWith(xxx_xxxxxx));
-                            newLine += (f2 is null) ? "||" : $"{f2.Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
-                            sb.AppendLine(newLine);
-                        }
-                    }
-
-                    string exportPath = Path.Combine(this._csv.CsvFolderPath, $"{DateTime.Now:yyy-MM-dd_HH-mm-ss}.csv");
-                    File.WriteAllText(exportPath, sb.ToString());
-                    Process.Start(new ProcessStartInfo {
-                        Arguments = this._csv.CsvFolderPath,
-                        FileName = "explorer.exe"
+                        Process.Start(new ProcessStartInfo {
+                            Arguments = this._csv.CsvFolderPath,
+                            FileName = "explorer.exe"
+                        });
                     });
                 }
             }
