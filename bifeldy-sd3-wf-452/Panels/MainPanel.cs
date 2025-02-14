@@ -19,7 +19,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -555,10 +555,13 @@ namespace GoogleCloudStorage.Panels {
                 int rowCount = 0;
                 int pending = 0;
                 int completed = 0;
+
                 string uploadPendingInfo = "List Belum Selesai" + Environment.NewLine;
                 string uploadCompleteInfo = "List Sudah Selesai" + Environment.NewLine;
-                string fn1 = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-                string fn2 = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
+
+                string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+                string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+
                 using (DbDataReader reader = await this._db.Sqlite_ExecReaderAsync(@"
                     SELECT year, week, dc_kode, file_1_name, file_1_date, file_2_name, file_2_date
                     FROM upload_log
@@ -570,9 +573,11 @@ namespace GoogleCloudStorage.Panels {
                 })) {
                     while (reader.Read()) {
                         string uploadInfo = Environment.NewLine;
+
                         if (!reader.IsDBNull(2)) {
                             rowCount++;
-                            uploadInfo += $"[#] " + reader.GetString(2);
+                            string dc_kode = reader.GetString(2);
+                            uploadInfo += $"[#] {dc_kode}";
                             if (!reader.IsDBNull(3) && !reader.IsDBNull(4) && !reader.IsDBNull(5) && !reader.IsDBNull(6)) {
                                 completed++;
                                 uploadInfo += Environment.NewLine + $"[#] " + reader.GetString(3) + " :: " + new DateTime(long.Parse(reader.GetInt64(4).ToString())).ToString();
@@ -582,18 +587,33 @@ namespace GoogleCloudStorage.Panels {
                             }
                             else {
                                 pending++;
+
                                 if (!reader.IsDBNull(3) && !reader.IsDBNull(4)) {
-                                    uploadInfo += Environment.NewLine + $"[#] " + reader.GetString(3) + " :: " + new DateTime(long.Parse(reader.GetInt64(4).ToString())).ToString();
-                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn2} BELUM DI UNGGAH";
+                                    string fn1 = reader.GetString(3);
+
+                                    Match rgx = Regex.Match(fn1, fp);
+                                    if (!rgx.Success) {
+                                        throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
+                                    }
+
+                                    uploadInfo += Environment.NewLine + $"[#] {fn1} :: " + new DateTime(long.Parse(reader.GetInt64(4).ToString())).ToString();
+                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_*table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value} BELUM DI UNGGAH";
                                 }
                                 else if (!reader.IsDBNull(5) && !reader.IsDBNull(6)) {
                                     // -- SAMPE BISA MASUK KE SINI SIH DB DI OTAK ATIK PASTI !!
-                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn1} BELUM DI UNGGAH";
-                                    uploadInfo += Environment.NewLine + $"[#] " + reader.GetString(5) + " :: " + new DateTime(long.Parse(reader.GetInt64(6).ToString())).ToString();
+                                    string fn2 = reader.GetString(5);
+
+                                    Match rgx = Regex.Match(fn2, fp);
+                                    if (!rgx.Success) {
+                                        throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
+                                    }
+
+                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_metadata_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value} BELUM DI UNGGAH";
+                                    uploadInfo += Environment.NewLine + $"[#] {fn2} :: " + new DateTime(long.Parse(reader.GetInt64(6).ToString())).ToString();
                                 }
                                 else {
-                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn1} BELUM DI UNGGAH";
-                                    uploadInfo += Environment.NewLine + $"[#] FILE {fn2} BELUM DI UNGGAH";
+                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_metadata_{dc_kode}_xxxxxx{file_ext} BELUM DI UNGGAH";
+                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_*table_{dc_kode}_xxxxxx{file_ext} BELUM DI UNGGAH";
                                 }
 
                                 uploadInfo += Environment.NewLine;
@@ -865,18 +885,22 @@ namespace GoogleCloudStorage.Panels {
                     await Task.Run(async () => {
                         List<GcsObject> objects = await this._gcs.ListAllObjects(path);
 
-                        string file1name_template = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-                        string file2name_template = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
+                        string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
 
                         var file1 = new List<GcsObject>();
                         var file2 = new List<GcsObject>();
                         foreach (GcsObject obj in objects) {
-                            if (obj.Name.ToLower().StartsWith(file1name_template)) {
-                                file1.Add(obj);
-                            }
+                            Match rgx = Regex.Match(obj.Name.ToLower(), fp);
+                            if (rgx.Success && rgx.Groups.Count == 5) {
 
-                            if (obj.Name.ToLower().StartsWith(file2name_template)) {
-                                file2.Add(obj);
+                                string metadataTable = rgx.Groups[1].Value;
+                                if (metadataTable.ToLower() == "metadata") {
+                                    file1.Add(obj);
+                                }
+                                else {
+                                    file2.Add(obj);
+                                }
+
                             }
                         }
 
@@ -897,9 +921,9 @@ namespace GoogleCloudStorage.Panels {
                         using (var writer = new StreamWriter(exportPath)) {
                             writer.WriteLine(string.Join("|", csvColumn).ToUpper());
                             foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
-                                string fileName = new List<string>(f1.Name.ToLower().Replace("\\", "/").Split('/')).Last();
+                                string fileName = f1.Name.ToLower().Replace("\\", "/").Split('/').Last();
                                 var fileDate = DateTime.ParseExact(fileName.Split('_').Last().Split('.').First().ToLower(), "yyMMdd", CultureInfo.InvariantCulture);
-                                string fn1 = file1name_template ?? string.Empty;
+                                string fn1 = "idm_metadata_g".ToLower();
                                 string newLine = string.Empty;
                                 if (fileName.StartsWith(fn1)) {
                                     int index = fileName.IndexOf(fn1);
@@ -973,7 +997,7 @@ namespace GoogleCloudStorage.Panels {
                     fd.RestoreDirectory = true;
                     fd.CheckFileExists = true;
                     fd.Filter = "MemoryDump files (*.dmp)|*.dmp";
-                    fd.Title = "Select idm_metadata_gxxx_xxxxxx.dmp | idm_43table_gxxx_xxxxxx.dmp";
+                    fd.Title = "Select idm_metadata_gxxx_xxxxxx.dmp | idm_*table_gxxx_xxxxxx.dmp";
                     if (fd.ShowDialog() != DialogResult.OK) {
                         throw new Exception("Gagal membuka file idm_***_gxxx_xxxxxx.dmp");
                     }
@@ -981,30 +1005,28 @@ namespace GoogleCloudStorage.Panels {
                     selectedLocalFilePath = fd.FileName;
                 }
 
-                string dc_kode = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-
                 DateTime curr = DateTime.Now;
                 int year = curr.Year;
                 int week = curr.GetWeekOfYear();
                 int month = curr.Month;
 
-                string fn1 = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-                string fn2 = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
-                if (dc_kode.StartsWith(fn1)) {
-                    int index = dc_kode.IndexOf(fn1);
-                    string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn1.Length);
-                    dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
-                }
-                else if (dc_kode.StartsWith(fn2)) {
-                    int index = dc_kode.IndexOf(fn2);
-                    string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn2.Length);
-                    dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
-                }
-                else {
-                    throw new Exception("Format nama file salah, IDM_***.dmp");
+                string fn = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
+
+                string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+                Match rgx = Regex.Match(fn, fp);
+                if (!rgx.Success) {
+                    throw new Exception($"Format nama file {fn} salah, diperbolehkan {fp}");
                 }
 
-                string filedate = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().Split('_').Last().Split('.').First().ToLower();
+                string dc_kode = rgx.Groups[2].Value;
+                string filedate = rgx.Groups[3].Value;
+                string fileext = rgx.Groups[4].Value;
+
+                string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+                if (fileext != file_ext) {
+                    throw new Exception($"Hanya file {file_ext} yang diperbolehkan");
+                }
+
                 var fileDate = DateTime.ParseExact(filedate, "yyMMdd", CultureInfo.InvariantCulture);
                 if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
                     throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
@@ -1016,7 +1038,8 @@ namespace GoogleCloudStorage.Panels {
                 DateTime file2date = DateTime.MinValue;
 
                 int rowCount = 0;
-                using (DbDataReader reader = await this._db.Sqlite_ExecReaderAsync(@"
+                using (
+                    DbDataReader reader = await this._db.Sqlite_ExecReaderAsync(@"
                         SELECT file_1_name, file_1_date, file_2_name, file_2_date
                         FROM upload_log
                         WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode
@@ -1025,7 +1048,8 @@ namespace GoogleCloudStorage.Panels {
                         new CDbQueryParamBind { NAME = "week", VALUE = week },
                         new CDbQueryParamBind { NAME = "month", VALUE = month },
                         new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode }
-                    })) {
+                    })
+                ) {
                     while (reader.Read()) {
                         rowCount++;
                         if (!reader.IsDBNull(0)) {
@@ -1051,14 +1075,14 @@ namespace GoogleCloudStorage.Panels {
                 this._db.OraPg_MsSqlLiteCloseAllConnection();
                 if (rowCount == 0) {
                     await this._db.SQLite_ExecQuery(@"
-                            INSERT INTO upload_log(year, week, month, dc_kode)
-                            VALUES(:year, :week, :month, :dc_kode)
-                        ", new List<CDbQueryParamBind> {
-                            new CDbQueryParamBind { NAME = "year", VALUE = year },
-                            new CDbQueryParamBind { NAME = "week", VALUE = week },
-                            new CDbQueryParamBind { NAME = "month", VALUE = month },
-                            new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode }
-                        });
+                        INSERT INTO upload_log(year, week, month, dc_kode)
+                        VALUES(:year, :week, :month, :dc_kode)
+                    ", new List<CDbQueryParamBind> {
+                        new CDbQueryParamBind { NAME = "year", VALUE = year },
+                        new CDbQueryParamBind { NAME = "week", VALUE = week },
+                        new CDbQueryParamBind { NAME = "month", VALUE = month },
+                        new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode }
+                    });
                 }
 
                 if (!string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
@@ -1066,7 +1090,7 @@ namespace GoogleCloudStorage.Panels {
                     MessageBox.Show(msg, $"Upload Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else if (string.IsNullOrEmpty(file1name) && string.IsNullOrEmpty(file2name)) {
-                    await this.Upload12(selectedLocalFilePath);
+                    await this.Upload12(selectedLocalFilePath, rgx);
                 }
                 else if (string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
                     await this.Upload1(selectedLocalFilePath, file2name.ToLower());
@@ -1086,67 +1110,59 @@ namespace GoogleCloudStorage.Panels {
             this.SetIdleBusyStatus(true);
         }
 
-        private async Task Upload12(string selectedLocalFilePath) {
-
-            // Check Nama File 1 :: idm_metadata_gxxx_xxxxxx.dmp :: Sesuai Tidak
-            string file1name_template = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-            string file1ext_template = this._config.Get<string>("File1Ext", this._app.GetConfig("file_1_ext"));
-            string file1 = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-            if (string.IsNullOrEmpty(file1name_template) || string.IsNullOrEmpty(file1ext_template) ||
-                !file1.StartsWith(file1name_template) || !file1.EndsWith(file1ext_template)
-            ) {
-                throw new Exception($"Format nama file salah, {file1name_template}xxx_xxxxxx{file1ext_template}");
+        private async Task Upload12(string selectedLocalFilePath, Match rgx) {
+            string metadataTable = rgx.Groups[1].Value;
+            if (metadataTable.ToLower() != "metadata") {
+                throw new Exception($"Harap memilih file metadata `idm_metadata_gxxx_xxxxxx.dmp`");
             }
 
-            // Ambil Kode Gudang & Tanggal File
-            int index = file1.IndexOf(file1name_template);
-            string xxx_xxxxxx = (index < 0) ? file1 : file1.Remove(index, file1name_template.Length);
+            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.dmp :: Ada Filenya Gak Di 1 Folder Pasangan
+            string file_ext = rgx.Groups[4].Value;
+            string file2pattern = $"idm_*table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{file_ext}";
+            var fp = Directory.EnumerateFiles(
+                Path.GetDirectoryName(selectedLocalFilePath),
+                file2pattern,
+                SearchOption.TopDirectoryOnly
+            ).ToList();
 
-            // Check Nama File 1 :: idm_43table_gxxx_xxxxxx.dmp :: Ada Filenya Gak 1 Folder Pasangan
-            string file2name_template = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
-            string file2ext_template = this._config.Get<string>("File2Ext", this._app.GetConfig("file_2_ext"));
-            string file2 = $"{file2name_template}{xxx_xxxxxx}";
-            string file2path = Path.Combine(Path.GetDirectoryName(selectedLocalFilePath), file2).Replace("\\", "/");
-            if (!File.Exists(file2path)) {
-                throw new Exception($"File tidak ditemukan, {file2name_template}xxx_xxxxxx{file2ext_template}");
+            if (fp.Count <= 0 || fp.Count > 1) {
+                throw new Exception($"Pastikan hanya 1 nama file pasangan yang cocok dengan pola {file2pattern}");
             }
 
-            await this.AddQueue(selectedLocalFilePath.Replace("\\", "/"), file2path.Replace("\\", "/"));
+            await this.AddQueue(selectedLocalFilePath.Replace("\\", "/"), fp.First().Replace("\\", "/"));
         }
 
-        private async Task Upload1(string selectedLocalFilePath, string file2path) {
+        private async Task Upload1(string selectedLocalFilePath, string file2name) {
+            string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+            Match rgx = Regex.Match(file2name, fp);
+            if (!rgx.Success) {
+                throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
+            }
 
-            // Ambil Kode Gudang & Tanggal File 2
-            string file2name_template = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
-            int index = file2path.IndexOf(file2name_template);
-            string xxx_xxxxxx = (index < 0) ? file2path : file2path.Remove(index, file2name_template.Length);
-
-            // Check Nama File 1 :: idm_metadata_gxxx_xxxxxx.dmp :: Sesuai Tidak
-            string file1name_template = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-            string file1ext_template = this._config.Get<string>("File1Ext", this._app.GetConfig("file_1_ext"));
-            string file1 = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-            string target = $"{file1name_template}{xxx_xxxxxx}";
-            if (file1 != target) {
-                throw new Exception($"File pasangan tidak sesuai, {file1name_template}xxx_xxxxxx{file1ext_template}");
+            // Check Nama File 1 :: idm_metadata_gxxx_xxxxxx.dmp :: Sesuai Tidak Dengan File 2
+            string file2ext = rgx.Groups[4].Value;
+            string file1name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
+            string target = $"idm_metadata_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{file2ext}".ToLower();
+            if (file1name != target) {
+                throw new Exception($"File pasangan tidak sesuai, silahkan pilih {target}");
             }
 
             await this.AddQueue(selectedLocalFilePath.Replace("\\", "/"));
         }
 
         private async Task Upload2(string selectedLocalFilePath, string file1name) {
+            string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+            Match rgx = Regex.Match(file1name, fp);
+            if (!rgx.Success) {
+                throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
+            }
 
-            // Ambil Kode Gudang & Tanggal File 1
-            string file1name_template = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-            int index = file1name.IndexOf(file1name_template);
-            string xxx_xxxxxx = (index < 0) ? file1name : file1name.Remove(index, file1name_template.Length);
-
-            // Check Nama File 2 :: idm_43table_gxxx_xxxxxx.dmp :: Sesuai Tidak
-            string file2name_template = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
-            string file2ext_template = this._config.Get<string>("File2Ext", this._app.GetConfig("file_2_ext"));
-            string file2 = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-            string target = $"{file2name_template}{xxx_xxxxxx}";
-            if (file2 != target) {
-                throw new Exception($"File pasangan tidak sesuai, {file2name_template}xxx_xxxxxx{file2ext_template}");
+            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.dmp :: Sesuai Tidak Dengan File 1
+            string file1ext = rgx.Groups[4].Value;
+            string file2name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
+            string target = $"table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{file1ext}".ToLower();
+            if (file2name.EndsWith(target)) {
+                throw new Exception($"File pasangan tidak sesuai, silahkan pilih idm_*{target}");
             }
 
             await this.AddQueue(selectedLocalFilePath.Replace("\\", "/"));
@@ -1324,8 +1340,16 @@ namespace GoogleCloudStorage.Panels {
                                 string sql = @"UPDATE upload_log SET";
                                 var param = new List<CDbQueryParamBind>();
 
-                                string file1name_template = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-                                if (fileInfo.Name.ToLower().Contains(file1name_template)) {
+                                string fn = fileInfo.Name.Replace("\\", "/").Split('/').Last().ToLower();
+
+                                string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+                                Match rgx = Regex.Match(fn, fp);
+                                if (!rgx.Success) {
+                                    throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
+                                }
+
+                                string metadataTable = rgx.Groups[1].Value;
+                                if (metadataTable.ToLower() == "metadata") {
                                     sql += " file_1_name = :file_1_name, file_1_date = :file_1_date";
                                     param.Add(new CDbQueryParamBind { NAME = "file_1_name", VALUE = fileInfo.Name.ToLower() });
                                     param.Add(new CDbQueryParamBind { NAME = "file_1_date", VALUE = DateTime.Now.Ticks });
@@ -1346,23 +1370,7 @@ namespace GoogleCloudStorage.Panels {
                                 int month = fileDate.Month;
                                 param.Add(new CDbQueryParamBind { NAME = "month", VALUE = month });
 
-                                string dc_kode = fileInfo.Name.ToLower();
-                                string fn1 = this._config.Get<string>("File1Name", this._app.GetConfig("file_1_name"));
-                                string fn2 = this._config.Get<string>("File2Name", this._app.GetConfig("file_2_name"));
-                                if (dc_kode.StartsWith(fn1)) {
-                                    int index = dc_kode.IndexOf(fn1);
-                                    string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn1.Length);
-                                    dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
-                                }
-                                else if (dc_kode.StartsWith(fn2)) {
-                                    int index = dc_kode.IndexOf(fn2);
-                                    string xxx_xxxxxx = (index < 0) ? dc_kode : dc_kode.Remove(index, fn2.Length);
-                                    dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
-                                }
-                                else {
-                                    dc_kode = null;
-                                }
-
+                                string dc_kode = rgx.Groups[2].Value;
                                 param.Add(new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode });
                                 await this._db.SQLite_ExecQuery(sql, param);
 
