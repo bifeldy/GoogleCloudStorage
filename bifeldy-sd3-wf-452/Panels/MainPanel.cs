@@ -1161,7 +1161,7 @@ namespace GoogleCloudStorage.Panels {
             string file1ext = rgx.Groups[4].Value;
             string file2name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
             string target = $"table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{file1ext}".ToLower();
-            if (file2name.EndsWith(target)) {
+            if (!file2name.EndsWith(target)) {
                 throw new Exception($"File pasangan tidak sesuai, silahkan pilih idm_*{target}");
             }
 
