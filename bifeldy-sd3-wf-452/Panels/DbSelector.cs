@@ -60,7 +60,7 @@ namespace GoogleCloudStorage.Panels {
                 this.mainForm.PanelContainer.Controls["CCekProgram"].BringToFront();
             }
             catch (Exception ex) {
-                MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

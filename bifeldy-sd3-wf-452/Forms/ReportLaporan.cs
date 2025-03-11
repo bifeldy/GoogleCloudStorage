@@ -46,7 +46,7 @@ namespace GoogleCloudStorage.Forms {
                 this.rptViewer.LocalReport.SetParameters(paramList);
             }
             else {
-                MessageBox.Show("Tidak Ada Data", $"Report Viewer :: {dsName}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _ = MessageBox.Show("Tidak Ada Data", $"Report Viewer :: {dsName}", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             return isReady;

@@ -207,20 +207,20 @@ namespace GoogleCloudStorage.Panels {
                 Alignment = DataGridViewContentAlignment.MiddleCenter
             };
 
-            this.dgQueue.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgQueue.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Local",
                 Name = "dgQueue_FileLocal",
                 ReadOnly = true
             });
-            this.dgQueue.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgQueue.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 DefaultCellStyle = dgViewCellStyle,
                 HeaderText = "Direction",
                 Name = "dgQueue_Direction",
                 ReadOnly = true
             });
-            this.dgQueue.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgQueue.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Remote",
                 Name = "dgQueue_FileRemote",
@@ -239,26 +239,26 @@ namespace GoogleCloudStorage.Panels {
 
             this.dgQueue.EnableHeadersVisualStyles = false;
 
-            this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Local",
                 Name = "dgOnProgress_FileLocal",
                 ReadOnly = true
             });
-            this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 DefaultCellStyle = dgViewCellStyle,
                 HeaderText = "Direction",
                 Name = "dgOnProgress_Direction",
                 ReadOnly = true
             });
-            this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Remote",
                 Name = "dgOnProgress_FileRemote",
                 ReadOnly = true
             });
-            this.dgOnProgress.Columns.Add(new DataGridViewProgressColumn {
+            _ = this.dgOnProgress.Columns.Add(new DataGridViewProgressColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 DefaultCellStyle = dgViewCellStyle,
                 HeaderText = "Progress",
@@ -266,13 +266,13 @@ namespace GoogleCloudStorage.Panels {
                 Name = "dgOnProgress_Progress",
                 ReadOnly = true
             });
-            this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 HeaderText = "Speed",
                 Name = "dgOnProgress_Speed",
                 ReadOnly = true
             });
-            this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgOnProgress.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 HeaderText = "Status",
                 MinimumWidth = 100,
@@ -292,26 +292,26 @@ namespace GoogleCloudStorage.Panels {
 
             this.dgOnProgress.EnableHeadersVisualStyles = false;
 
-            this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Local",
                 Name = "dgErrorFail_FileLocal",
                 ReadOnly = true
             });
-            this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 DefaultCellStyle = dgViewCellStyle,
                 HeaderText = "Direction",
                 Name = "dgErrorFail_Direction",
                 ReadOnly = true
             });
-            this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Remote",
                 Name = "dgErrorFail_FileRemote",
                 ReadOnly = true
             });
-            this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgErrorFail.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "Status",
                 MinimumWidth = 100,
@@ -331,26 +331,26 @@ namespace GoogleCloudStorage.Panels {
 
             this.dgErrorFail.EnableHeadersVisualStyles = false;
 
-            this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Local",
                 Name = "dgSuccess_FileLocal",
                 ReadOnly = true
             });
-            this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 DefaultCellStyle = dgViewCellStyle,
                 HeaderText = "Direction",
                 Name = "dgSuccess_Direction",
                 ReadOnly = true
             });
-            this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 HeaderText = "File Remote",
                 Name = "dgSuccess_FileRemote",
                 ReadOnly = true
             });
-            this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
+            _ = this.dgSuccess.Columns.Add(new DataGridViewTextBoxColumn {
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
                 HeaderText = "Status",
                 MinimumWidth = 100,
@@ -426,7 +426,7 @@ namespace GoogleCloudStorage.Panels {
                     this._logger.WriteError(progress.Exception);
                 }
 
-                dgv.Rows.Add(
+                _ = dgv.Rows.Add(
                     dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_FileLocal"].Index].Value,
                     dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_Direction"].Index].Value,
                     dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_FileRemote"].Index].Value,
@@ -504,7 +504,7 @@ namespace GoogleCloudStorage.Panels {
                     this._logger.WriteError(progress.Exception);
                 }
 
-                dgv.Rows.Add(
+                _ = dgv.Rows.Add(
                     dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_FileLocal"].Index].Value,
                     dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_Direction"].Index].Value,
                     dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_FileRemote"].Index].Value,
@@ -542,7 +542,7 @@ namespace GoogleCloudStorage.Panels {
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -632,7 +632,7 @@ namespace GoogleCloudStorage.Panels {
                         this.onWriteLogProgress.Report(info);
                     }
 
-                    MessageBox.Show(info, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    _ = MessageBox.Show(info, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else {
                     if (completed > 0) {
@@ -640,7 +640,7 @@ namespace GoogleCloudStorage.Panels {
                             this.onWriteLogProgress.Report(uploadCompleteInfo);
                         }
 
-                        MessageBox.Show(uploadCompleteInfo, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        _ = MessageBox.Show(uploadCompleteInfo, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
 
                     if (pending > 0) {
@@ -648,13 +648,13 @@ namespace GoogleCloudStorage.Panels {
                             this.onWriteLogProgress.Report(uploadPendingInfo);
                         }
 
-                        MessageBox.Show(uploadPendingInfo, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Question);
+                        _ = MessageBox.Show(uploadPendingInfo, "Weekly Checker", MessageBoxButtons.OK, MessageBoxIcon.Question);
                     }
                 }
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -719,7 +719,7 @@ namespace GoogleCloudStorage.Panels {
                     return bckt.Name.ToUpper().Contains(this.txtFilter.Text.ToUpper());
                 }).Select(bckt => {
                     var lvi = new ListViewItem { Tag = bckt, Text = bckt.Name, ImageIndex = 0 };
-                    lvi.SubItems.Add(bckt.Updated.ToString());
+                    _ = lvi.SubItems.Add(bckt.Updated.ToString());
                     return lvi;
                 }).ToArray();
                 this.lvRemote.Items.Clear();
@@ -728,7 +728,7 @@ namespace GoogleCloudStorage.Panels {
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally {
                 this.txtDirPath.Text = string.Empty;
@@ -767,8 +767,8 @@ namespace GoogleCloudStorage.Panels {
                     return obj.Name.ToUpper().Contains(this.txtFilter.Text.ToUpper());
                 }).Select(obj => {
                     var lvi = new ListViewItem { Tag = obj, Text = obj.Name, ImageIndex = 0 };
-                    lvi.SubItems.Add(this._converter.FormatByteSizeHumanReadable((long) obj.Size));
-                    lvi.SubItems.Add(obj.Updated.ToString());
+                    _ = lvi.SubItems.Add(this._converter.FormatByteSizeHumanReadable((long)obj.Size));
+                    _ = lvi.SubItems.Add(obj.Updated.ToString());
                     return lvi;
                 }).ToArray();
                 this.lvRemote.Items.Clear();
@@ -777,7 +777,7 @@ namespace GoogleCloudStorage.Panels {
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally {
                 this.txtDirPath.Text = path;
@@ -814,7 +814,7 @@ namespace GoogleCloudStorage.Panels {
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -937,7 +937,7 @@ namespace GoogleCloudStorage.Panels {
                             }
                         }
 
-                        Process.Start(new ProcessStartInfo {
+                        _ = Process.Start(new ProcessStartInfo {
                             Arguments = this._csv.CsvFolderPath,
                             FileName = "explorer.exe"
                         });
@@ -946,7 +946,7 @@ namespace GoogleCloudStorage.Panels {
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally {
                 this.btnHome.Enabled = true;
@@ -971,18 +971,18 @@ namespace GoogleCloudStorage.Panels {
                         ddl = await this._gcs.CreateDownloadUrlSigned(item, this.dtpExp.Value);
                     });
                     if (string.IsNullOrEmpty(ddl)) {
-                        MessageBox.Show("Gagal Membuat URL Unduhan", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _ = MessageBox.Show("Gagal Membuat URL Unduhan", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     else {
                         Clipboard.SetText(ddl);
-                        MessageBox.Show(ddl, $"(CopyPaste) Expired :: {this.dtpExp.Value}", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        Process.Start(ddl);
+                        _ = MessageBox.Show(ddl, $"(CopyPaste) Expired :: {this.dtpExp.Value}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        _ = Process.Start(ddl);
                     }
                 }
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Direct Download Link Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Direct Download Link Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             this.SetIdleBusyStatus(true);
@@ -1074,7 +1074,7 @@ namespace GoogleCloudStorage.Panels {
 
                 this._db.OraPg_MsSqlLiteCloseAllConnection();
                 if (rowCount == 0) {
-                    await this._db.SQLite_ExecQuery(@"
+                    _ = await this._db.SQLite_ExecQuery(@"
                         INSERT INTO upload_log(year, week, month, dc_kode)
                         VALUES(:year, :week, :month, :dc_kode)
                     ", new List<CDbQueryParamBind> {
@@ -1087,7 +1087,7 @@ namespace GoogleCloudStorage.Panels {
 
                 if (!string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
                     string msg = $"Upload minggu ini sudah selesai{Environment.NewLine}{Environment.NewLine}{file1name}{Environment.NewLine}{file1date}{Environment.NewLine}{Environment.NewLine}{file2name}{Environment.NewLine}{file2date}";
-                    MessageBox.Show(msg, $"Upload Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    _ = MessageBox.Show(msg, $"Upload Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else if (string.IsNullOrEmpty(file1name) && string.IsNullOrEmpty(file2name)) {
                     await this.Upload12(selectedLocalFilePath, rgx);
@@ -1099,12 +1099,12 @@ namespace GoogleCloudStorage.Panels {
                     await this.Upload2(selectedLocalFilePath, file1name.ToLower());
                 }
                 else {
-                    MessageBox.Show($"File bermasalah{Environment.NewLine}Silahkan coba lagi dengan file lain", $"File Check Problem", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _ = MessageBox.Show($"File bermasalah{Environment.NewLine}Silahkan coba lagi dengan file lain", $"File Check Problem", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             this.SetIdleBusyStatus(true);
@@ -1303,14 +1303,14 @@ namespace GoogleCloudStorage.Panels {
                             this._db.OraPg_MsSqlLiteCloseAllConnection();
 
                             if (uploadSession == null) {
-                                await this._db.SQLite_ExecQuery(@"
+                                _ = await this._db.SQLite_ExecQuery(@"
                                     DELETE FROM upload_chunk
                                     WHERE file_md5 = :file_md5
                                 ", new List<CDbQueryParamBind> {
                                     new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 }
                                 });
                                 uploadSession = await this._gcs.CreateUploadUri(mediaUpload);
-                                await this._db.SQLite_ExecQuery(@"
+                                _ = await this._db.SQLite_ExecQuery(@"
                                     INSERT INTO upload_chunk(file_md5, file_session, file_date)
                                     VALUES(:file_md5, :file_session, :file_date)
                                 ", new List<CDbQueryParamBind> {
@@ -1372,9 +1372,9 @@ namespace GoogleCloudStorage.Panels {
 
                                 string dc_kode = rgx.Groups[2].Value;
                                 param.Add(new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode });
-                                await this._db.SQLite_ExecQuery(sql, param);
+                                _ = await this._db.SQLite_ExecQuery(sql, param);
 
-                                await this._db.SQLite_ExecQuery(@"
+                                _ = await this._db.SQLite_ExecQuery(@"
                                     DELETE FROM upload_chunk
                                     WHERE file_md5 = :file_md5
                                 ", new List<CDbQueryParamBind> {
@@ -1383,7 +1383,7 @@ namespace GoogleCloudStorage.Panels {
                             }
                             catch (Exception ex) {
                                 this._logger.WriteError(ex);
-                                MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                _ = MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
 
                             try {
@@ -1404,17 +1404,17 @@ namespace GoogleCloudStorage.Panels {
                             }
                             catch (Exception ex) {
                                 this._logger.WriteError(ex);
-                                MessageBox.Show(ex.Message, "Delete Local Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                _ = MessageBox.Show(ex.Message, "Delete Local Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
                     }
                     catch (TaskCanceledException ex) {
                         this._logger.WriteError(ex);
-                        MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _ = MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     catch (Exception ex) {
                         this._logger.WriteError(ex);
-                        MessageBox.Show(ex.Message, "Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _ = MessageBox.Show(ex.Message, "Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 });
 
@@ -1459,7 +1459,7 @@ namespace GoogleCloudStorage.Panels {
                     int idx = this.dgOnProgress.Rows.Add(targetPathLocal, "<<<===", $"Google://{folderId}/{item.Name}");
                     DataGridViewRow dataGridViewRow = this.dgOnProgress.Rows[idx];
 
-                    Task.Run(async () => {
+                    _ = Task.Run(async () => {
                         try {
                             CGcsDownloadProgress progressOld = null;
                             DateTime dateTime = DateTime.Now;
@@ -1470,7 +1470,7 @@ namespace GoogleCloudStorage.Panels {
                                 existingFileSize = new FileInfo(fileTempPath).Length;
                             }
 
-                            await this._gcs.DownloadFile((GcsObject) item, selectedLocalFilePath, (progressNew) => {
+                            await this._gcs.DownloadFile((GcsObject)item, selectedLocalFilePath, (progressNew) => {
                                 progressNew.BytesDownloaded += existingFileSize;
                                 this.onGoingDownloadProgress.Report(new {
                                     dgvr = dataGridViewRow,
@@ -1489,25 +1489,25 @@ namespace GoogleCloudStorage.Panels {
 
                             File.Move(Path.Combine(this._berkas.DownloadFolderPath, item.Name), selectedLocalFilePath);
 
-                            Process.Start(new ProcessStartInfo {
+                            _ = Process.Start(new ProcessStartInfo {
                                 Arguments = Path.GetDirectoryName(selectedLocalFilePath),
                                 FileName = "explorer.exe"
                             });
                         }
                         catch (TaskCanceledException ex) {
                             this._logger.WriteError(ex);
-                            MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            _ = MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                         catch (Exception ex) {
                             this._logger.WriteError(ex);
-                            MessageBox.Show(ex.Message, "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            _ = MessageBox.Show(ex.Message, "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     });
                 }
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                MessageBox.Show(ex.Message, "Save File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Save File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             this.SetIdleBusyStatus(true);

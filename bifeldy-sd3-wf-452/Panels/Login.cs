@@ -100,7 +100,7 @@ namespace GoogleCloudStorage.Panels {
                 this.mainForm.PanelContainer.Controls["CMainPanel"].BringToFront();
             }
             catch (Exception ex) {
-                MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             // Remove All Other Unused Panels
@@ -131,7 +131,7 @@ namespace GoogleCloudStorage.Panels {
                 // Check User Input
                 if (string.IsNullOrEmpty(this.txtUserNameNik.Text) || string.IsNullOrEmpty(this.txtPassword.Text)) {
                     this.ShowLoading(false);
-                    MessageBox.Show("Username / NIK Dan Kata Sandi Wajib Diisi!", "User Authentication", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    _ = MessageBox.Show("Username / NIK Dan Kata Sandi Wajib Diisi!", "User Authentication", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 }
 
                 await Task.Run(async () => {
@@ -141,7 +141,7 @@ namespace GoogleCloudStorage.Panels {
 
             if (!resultLogin) {
                 this.ShowLoading(false);
-                MessageBox.Show("Login Gagal, Kredensial Salah!", "User Authentication", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                _ = MessageBox.Show("Login Gagal, Kredensial Salah!", "User Authentication", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else {
 
@@ -160,7 +160,7 @@ namespace GoogleCloudStorage.Panels {
 
                 if (!resultCekIpMac) {
                     this.ShowLoading(false);
-                    MessageBox.Show(
+                    _ = MessageBox.Show(
                         $"Alamat IP / MAC Untuk User '{this._db.LoggedInUsername}' Belum Terdaftar!",
                         "User Authentication",
                         MessageBoxButtons.OK,
@@ -192,7 +192,7 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private void BtnPaksaUpdate_Click(object sender, EventArgs e) {
-            this._updater.CheckUpdater();
+            _ = this._updater.CheckUpdater();
         }
 
     }

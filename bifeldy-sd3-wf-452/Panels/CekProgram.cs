@@ -71,7 +71,7 @@ namespace GoogleCloudStorage.Panels {
                         await this._updater.UpdateSqliteDatabase();
                     }
                     catch (Exception ex) {
-                        MessageBox.Show(ex.Message, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _ = MessageBox.Show(ex.Message, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         this._app.Exit();
                     }
                 });
@@ -96,11 +96,11 @@ namespace GoogleCloudStorage.Panels {
                             dbAvailable = true;
                         }
                         catch (Exception ex2) {
-                            MessageBox.Show(ex2.Message, "Auto Run Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            _ = MessageBox.Show(ex2.Message, "Auto Run Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                     else {
-                        MessageBox.Show(ex1.Message, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _ = MessageBox.Show(ex1.Message, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             });
@@ -132,7 +132,7 @@ namespace GoogleCloudStorage.Panels {
                         }
 
                         if (!updated) {
-                            MessageBox.Show(
+                            _ = MessageBox.Show(
                                 "Gagal Update Otomatis" + Environment.NewLine + "Silahkan Hubungi IT SSD 03 Untuk Ambil Program Baru" + Environment.NewLine + Environment.NewLine + responseCekProgram,
                                 "Program Checker",
                                 MessageBoxButtons.OK,
@@ -142,12 +142,12 @@ namespace GoogleCloudStorage.Panels {
                         }
                     }
                     else {
-                        MessageBox.Show(responseCekProgram, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _ = MessageBox.Show(responseCekProgram, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         this._app.Exit();
                     }
                 }
                 else {
-                    MessageBox.Show(
+                    _ = MessageBox.Show(
                         $"Program Hanya Dapat Di Jalankan Di DC {Environment.NewLine}{string.Join(", ", this._app.ListDcCanUse.ToArray())}",
                         "Program Checker",
                         MessageBoxButtons.OK,
@@ -177,7 +177,7 @@ namespace GoogleCloudStorage.Panels {
                 }
             }
             catch (Exception ex) {
-                MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

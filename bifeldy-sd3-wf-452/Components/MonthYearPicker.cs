@@ -49,14 +49,14 @@ namespace GoogleCloudStorage.Components {
                     // detect pop-up display and switch view to month selection
                     case -950:
                         var cal = SendMessage(this.Handle, DTM_GETMONTHCAL, IntPtr.Zero, IntPtr.Zero);
-                        SendMessage(cal, MCM_SETCURRENTVIEW, IntPtr.Zero, (IntPtr) 1);
+                        _ = SendMessage(cal, MCM_SETCURRENTVIEW, IntPtr.Zero, (IntPtr)1);
                         break;
 
                     // detect month selection and close the pop-up
                     case MCN_VIEWCHANGE:
                         var nmviewchange = (NMVIEWCHANGE) Marshal.PtrToStructure(m.LParam, typeof(NMVIEWCHANGE));
                         if (nmviewchange.dwOldView == 1 && nmviewchange.dwNewView == 0) {
-                            SendMessage(this.Handle, DTM_CLOSEMONTHCAL, IntPtr.Zero, IntPtr.Zero);
+                            _ = SendMessage(this.Handle, DTM_CLOSEMONTHCAL, IntPtr.Zero, IntPtr.Zero);
                         }
 
                         break;

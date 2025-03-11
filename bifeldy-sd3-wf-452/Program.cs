@@ -85,7 +85,7 @@ namespace GoogleCloudStorage {
                         string changeLog = Path.Combine(_app.AppLocation, "ChangeLog.txt");
                         if (File.Exists(changeLog)) {
                             string cl = File.ReadAllText(changeLog);
-                            MessageBox.Show(cl, $"[ChangeLog] {_app.AppName}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            _ = MessageBox.Show(cl, $"[ChangeLog] {_app.AppName}", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
 
                         Application.Run(Bifeldyz.Resolve<CMainForm>());
@@ -94,8 +94,8 @@ namespace GoogleCloudStorage {
                 else {
                     foreach (Process process in allProcess) {
                         if (process.Id != currentProcess.Id) {
-                            SetForegroundWindow(process.MainWindowHandle);
-                            MessageBox.Show(
+                            _ = SetForegroundWindow(process.MainWindowHandle);
+                            _ = MessageBox.Show(
                                 "Program Saat Ini Sudah Berjalan, Cek System Tray Icon Kanan Bawah Windows",
                                 currentProcess.MainModule.ModuleName,
                                 MessageBoxButtons.OK,

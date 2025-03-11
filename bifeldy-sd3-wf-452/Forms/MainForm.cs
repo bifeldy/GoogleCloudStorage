@@ -127,7 +127,7 @@ namespace GoogleCloudStorage.Forms {
                 }
             }
             catch (Exception ex) {
-                MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Terjadi Kesalahan! (｡>﹏<｡)", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -140,7 +140,7 @@ namespace GoogleCloudStorage.Forms {
                 .Select(d => $"{d.DESCRIPTION}\r\n{d.MAC_ADDRESS}\r\n{d.IP_V4_ADDRESS}\r\n{d.IP_V6_ADDRESS}\r\n\r\n")
                 .ToArray();
             string ipMac = string.Join(Environment.NewLine, ipsMacs).Replace("\r\n\r\n", "\r\n");
-            MessageBox.Show(ipMac, "Network Interface Card", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _ = MessageBox.Show(ipMac, "Network Interface Card", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         public void SysTray_DoubleClick(object sender, EventArgs e) {
@@ -153,7 +153,7 @@ namespace GoogleCloudStorage.Forms {
         public void SysTray_MenuExit(object sender, EventArgs e) {
             string title = "Good Bye~ (｡>﹏<｡)";
             string msg = this._app.Author + Environment.NewLine + "© 2023 :: IT S/SD 03";
-            MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _ = MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.sysTrayNotifyIcon.Dispose();
             this._app.Exit();
         }
@@ -169,7 +169,7 @@ namespace GoogleCloudStorage.Forms {
         private void ShakeForm() {
             Thread.Sleep(60);
             if (this.InvokeRequired) {
-                this.Invoke(new DelegateFunction(this.ShakeForm));
+                _ = this.Invoke(new DelegateFunction(this.ShakeForm));
             }
             else {
                 Point original = this.Location;
@@ -189,7 +189,7 @@ namespace GoogleCloudStorage.Forms {
 
         private void StatusStripDbName_Click(object sender, EventArgs e) {
             if (this._app.DebugMode) {
-                MessageBox.Show(
+                _ = MessageBox.Show(
                     this._db.GetAllAvailableDbConnectionsString(),
                     "Koneksi Database",
                     MessageBoxButtons.OK,
