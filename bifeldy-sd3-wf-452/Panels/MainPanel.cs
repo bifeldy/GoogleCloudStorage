@@ -892,15 +892,12 @@ namespace GoogleCloudStorage.Panels {
                         foreach (GcsObject obj in objects) {
                             Match rgx = Regex.Match(obj.Name.ToLower(), fp);
                             if (rgx.Success && rgx.Groups.Count == 5) {
-
-                                string metadataTable = rgx.Groups[1].Value;
-                                if (metadataTable.ToLower() == "metadata") {
+                                if (rgx.Groups[1].Value.ToLower() == "metadata") {
                                     file1.Add(obj);
                                 }
                                 else {
                                     file2.Add(obj);
                                 }
-
                             }
                         }
 
@@ -991,15 +988,18 @@ namespace GoogleCloudStorage.Panels {
         private async void BtnUpload_Click(object sender, EventArgs e) {
             this.SetIdleBusyStatus(false);
             try {
+                string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+
                 string selectedLocalFilePath = null;
                 using (var fd = new OpenFileDialog()) {
                     fd.InitialDirectory = this._app.AppLocation;
                     fd.RestoreDirectory = true;
                     fd.CheckFileExists = true;
-                    fd.Filter = "MemoryDump files (*.dmp)|*.dmp";
-                    fd.Title = "Select idm_metadata_gxxx_xxxxxx.dmp | idm_*table_gxxx_xxxxxx.dmp";
+                    fd.Filter = $"MemoryDump files (*{file_ext})|*{file_ext}";
+                    fd.Title = $"Select idm_metadata_gxxx_xxxxxx{file_ext} | idm_*table_gxxx_xxxxxx{file_ext}";
+                    fd.DefaultExt = file_ext;
                     if (fd.ShowDialog() != DialogResult.OK) {
-                        throw new Exception("Gagal membuka file idm_***_gxxx_xxxxxx.dmp");
+                        throw new Exception($"Gagal membuka file idm_***_gxxx_xxxxxx{file_ext}");
                     }
 
                     selectedLocalFilePath = fd.FileName;
@@ -1018,16 +1018,11 @@ namespace GoogleCloudStorage.Panels {
                     throw new Exception($"Format nama file {fn} salah, diperbolehkan {fp}");
                 }
 
-                string dc_kode = rgx.Groups[2].Value;
-                string filedate = rgx.Groups[3].Value;
-                string fileext = rgx.Groups[4].Value;
-
-                string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
-                if (fileext != file_ext) {
+                if (rgx.Groups[4].Value != file_ext) {
                     throw new Exception($"Hanya file {file_ext} yang diperbolehkan");
                 }
 
-                var fileDate = DateTime.ParseExact(filedate, "yyMMdd", CultureInfo.InvariantCulture);
+                var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
                 if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
                     throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
                 }
@@ -1047,7 +1042,7 @@ namespace GoogleCloudStorage.Panels {
                         new CDbQueryParamBind { NAME = "year", VALUE = year },
                         new CDbQueryParamBind { NAME = "week", VALUE = week },
                         new CDbQueryParamBind { NAME = "month", VALUE = month },
-                        new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode }
+                        new CDbQueryParamBind { NAME = "dc_kode", VALUE = rgx.Groups[2].Value }
                     })
                 ) {
                     while (reader.Read()) {
@@ -1081,7 +1076,7 @@ namespace GoogleCloudStorage.Panels {
                         new CDbQueryParamBind { NAME = "year", VALUE = year },
                         new CDbQueryParamBind { NAME = "week", VALUE = week },
                         new CDbQueryParamBind { NAME = "month", VALUE = month },
-                        new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode }
+                        new CDbQueryParamBind { NAME = "dc_kode", VALUE = rgx.Groups[2].Value }
                     });
                 }
 
@@ -1111,14 +1106,12 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private async Task Upload12(string selectedLocalFilePath, Match rgx) {
-            string metadataTable = rgx.Groups[1].Value;
-            if (metadataTable.ToLower() != "metadata") {
-                throw new Exception($"Harap memilih file metadata `idm_metadata_gxxx_xxxxxx.dmp`");
+            if (rgx.Groups[1].Value.ToLower() != "metadata") {
+                throw new Exception($"Harap memilih file metadata `idm_metadata_gxxx_xxxxxx{rgx.Groups[4].Value}`");
             }
 
-            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.dmp :: Ada Filenya Gak Di 1 Folder Pasangan
-            string file_ext = rgx.Groups[4].Value;
-            string file2pattern = $"idm_*table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{file_ext}";
+            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.ext :: Ada Filenya Gak Di 1 Folder Pasangan
+            string file2pattern = $"idm_*table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}";
             var fp = Directory.EnumerateFiles(
                 Path.GetDirectoryName(selectedLocalFilePath),
                 file2pattern,
@@ -1139,10 +1132,9 @@ namespace GoogleCloudStorage.Panels {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
             }
 
-            // Check Nama File 1 :: idm_metadata_gxxx_xxxxxx.dmp :: Sesuai Tidak Dengan File 2
-            string file2ext = rgx.Groups[4].Value;
+            // Check Nama File 1 :: idm_metadata_gxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 2
             string file1name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-            string target = $"idm_metadata_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{file2ext}".ToLower();
+            string target = $"idm_metadata_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}".ToLower();
             if (file1name != target) {
                 throw new Exception($"File pasangan tidak sesuai, silahkan pilih {target}");
             }
@@ -1157,10 +1149,9 @@ namespace GoogleCloudStorage.Panels {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
             }
 
-            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.dmp :: Sesuai Tidak Dengan File 1
-            string file1ext = rgx.Groups[4].Value;
+            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 1
             string file2name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-            string target = $"table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{file1ext}".ToLower();
+            string target = $"table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}".ToLower();
             if (!file2name.EndsWith(target)) {
                 throw new Exception($"File pasangan tidak sesuai, silahkan pilih idm_*{target}");
             }
@@ -1348,8 +1339,7 @@ namespace GoogleCloudStorage.Panels {
                                     throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
                                 }
 
-                                string metadataTable = rgx.Groups[1].Value;
-                                if (metadataTable.ToLower() == "metadata") {
+                                if (rgx.Groups[1].Value.ToLower() == "metadata") {
                                     sql += " file_1_name = :file_1_name, file_1_date = :file_1_date";
                                     param.Add(new CDbQueryParamBind { NAME = "file_1_name", VALUE = fileInfo.Name.ToLower() });
                                     param.Add(new CDbQueryParamBind { NAME = "file_1_date", VALUE = DateTime.Now.Ticks });
@@ -1363,15 +1353,10 @@ namespace GoogleCloudStorage.Panels {
                                 sql += " WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode";
                                 string filedate = fileInfo.Name.Replace("\\", "/").Split('/').Last().Split('_').Last().Split('.').First().ToLower();
                                 var fileDate = DateTime.ParseExact(filedate, "yyMMdd", CultureInfo.InvariantCulture);
-                                int year = fileDate.Year;
-                                param.Add(new CDbQueryParamBind { NAME = "year", VALUE = year });
-                                int week = fileDate.GetWeekOfYear();
-                                param.Add(new CDbQueryParamBind { NAME = "week", VALUE = week });
-                                int month = fileDate.Month;
-                                param.Add(new CDbQueryParamBind { NAME = "month", VALUE = month });
-
-                                string dc_kode = rgx.Groups[2].Value;
-                                param.Add(new CDbQueryParamBind { NAME = "dc_kode", VALUE = dc_kode });
+                                param.Add(new CDbQueryParamBind { NAME = "year", VALUE = fileDate.Year });
+                                param.Add(new CDbQueryParamBind { NAME = "week", VALUE = fileDate.GetWeekOfYear() });
+                                param.Add(new CDbQueryParamBind { NAME = "month", VALUE = fileDate.Month });
+                                param.Add(new CDbQueryParamBind { NAME = "dc_kode", VALUE = rgx.Groups[2].Value });
                                 _ = await this._db.SQLite_ExecQuery(sql, param);
 
                                 _ = await this._db.SQLite_ExecQuery(@"
@@ -1388,14 +1373,14 @@ namespace GoogleCloudStorage.Panels {
 
                             try {
                                 DialogResult dialogResult =
-                                    this.cbDeleteOnComplete.Checked ?
-                                        DialogResult.Yes :
-                                            MessageBox.Show(
-                                                $"Delete File '{fileInfo.FullName}'",
-                                                "Upload Finished",
-                                                MessageBoxButtons.YesNo,
-                                                MessageBoxIcon.Question
-                                            );
+                                    this.cbDeleteOnComplete.Checked
+                                        ? DialogResult.Yes
+                                        : MessageBox.Show(
+                                            $"Delete File '{fileInfo.FullName}'",
+                                            "Upload Finished",
+                                            MessageBoxButtons.YesNo,
+                                            MessageBoxIcon.Question
+                                        );
                                 if (dialogResult == DialogResult.Yes) {
                                     if (fileInfo.Exists) {
                                         fileInfo.Delete();
@@ -1433,16 +1418,18 @@ namespace GoogleCloudStorage.Panels {
                 dynamic item = this.lvRemote.SelectedItems[0].Tag;
                 if (item is GcsObject || item.Kind == "storage#object") {
                     string selectedLocalFilePath = null;
+                    string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+
                     using (var fd = new SaveFileDialog()) {
                         fd.InitialDirectory = this._app.AppLocation;
                         fd.RestoreDirectory = true;
                         fd.CheckPathExists = true;
                         fd.FileName = item.Name;
-                        fd.Filter = "MemoryDump files (*.dmp)|*.dmp";
+                        fd.Filter = $"MemoryDump files (*{file_ext})|*{file_ext}";
                         fd.Title = $"Save {item.Name}";
-                        fd.DefaultExt = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+                        fd.DefaultExt = file_ext;
                         if (fd.ShowDialog() != DialogResult.OK) {
-                            throw new Exception("Gagal menentukan lokasi penyimpanan file idm_***_gxxx_xxxxxx.dmp");
+                            throw new Exception($"Gagal menentukan lokasi penyimpanan file idm_***_gxxx_xxxxxx{file_ext}");
                         }
 
                         selectedLocalFilePath = fd.FileName;
