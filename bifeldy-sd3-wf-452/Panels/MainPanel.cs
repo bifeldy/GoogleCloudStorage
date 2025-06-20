@@ -47,6 +47,7 @@ namespace GoogleCloudStorage.Panels {
         private readonly IGoogleCloudStorage _gcs;
         private readonly IBerkas _berkas;
         private readonly ICsv _csv;
+        private readonly IPgpRsa _pgpRsa;
 
         private CMainForm mainForm;
 
@@ -91,7 +92,8 @@ namespace GoogleCloudStorage.Panels {
             IChiper chiper,
             IGoogleCloudStorage gcs,
             IBerkas berkas,
-            ICsv csv
+            ICsv csv,
+            IPgpRsa pgpRsa
         ) {
             this._app = app;
             this._logger = logger;
@@ -103,6 +105,7 @@ namespace GoogleCloudStorage.Panels {
             this._gcs = gcs;
             this._berkas = berkas;
             this._csv = csv;
+            this._pgpRsa = pgpRsa;
 
             this.InitializeComponent();
             this.OnInit();
@@ -559,8 +562,8 @@ namespace GoogleCloudStorage.Panels {
                 string uploadPendingInfo = "List Belum Selesai" + Environment.NewLine;
                 string uploadCompleteInfo = "List Sudah Selesai" + Environment.NewLine;
 
-                string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
-                string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+                string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
+                string file_ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
 
                 using (DbDataReader reader = await this._db.Sqlite_ExecReaderAsync(@"
                     SELECT year, week, dc_kode, file_1_name, file_1_date, file_2_name, file_2_date
@@ -885,7 +888,7 @@ namespace GoogleCloudStorage.Panels {
                     await Task.Run(async () => {
                         List<GcsObject> objects = await this._gcs.ListAllObjects(path);
 
-                        string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+                        string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
 
                         var file1 = new List<GcsObject>();
                         var file2 = new List<GcsObject>();
@@ -988,14 +991,14 @@ namespace GoogleCloudStorage.Panels {
         private async void BtnUpload_Click(object sender, EventArgs e) {
             this.SetIdleBusyStatus(false);
             try {
-                string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+                string file_ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
 
                 string selectedLocalFilePath = null;
                 using (var fd = new OpenFileDialog()) {
                     fd.InitialDirectory = this._app.AppLocation;
                     fd.RestoreDirectory = true;
                     fd.CheckFileExists = true;
-                    fd.Filter = $"MemoryDump files (*{file_ext})|*{file_ext}";
+                    fd.Filter = $"Sig files (*{file_ext})|*{file_ext}";
                     fd.Title = $"Select idm_metadata_gxxx_xxxxxx{file_ext} | idm_*table_gxxx_xxxxxx{file_ext}";
                     fd.DefaultExt = file_ext;
                     if (fd.ShowDialog() != DialogResult.OK) {
@@ -1012,7 +1015,7 @@ namespace GoogleCloudStorage.Panels {
 
                 string fn = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
 
-                string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+                string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
                 Match rgx = Regex.Match(fn, fp);
                 if (!rgx.Success) {
                     throw new Exception($"Format nama file {fn} salah, diperbolehkan {fp}");
@@ -1126,7 +1129,7 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private async Task Upload1(string selectedLocalFilePath, string file2name) {
-            string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+            string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
             Match rgx = Regex.Match(file2name, fp);
             if (!rgx.Success) {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
@@ -1143,7 +1146,7 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private async Task Upload2(string selectedLocalFilePath, string file1name) {
-            string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+            string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
             Match rgx = Regex.Match(file1name, fp);
             if (!rgx.Success) {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
@@ -1181,30 +1184,38 @@ namespace GoogleCloudStorage.Panels {
             return false;
         }
 
-        private async Task AddQueue(string filePath, string fileNextPath = null) {
+        private async Task AddQueue(string sigFilePath, string fileNextPath = null) {
             string[] arrRemoteDir = this.txtDirPath.Text.Split('/');
             string targetFolderId = arrRemoteDir[arrRemoteDir.Length - 1];
 
-            var fileInfo = new FileInfo(filePath);
+            string sigFileName = sigFilePath.Replace("\\", "/").Split('/').Last().ToLower();
 
-            if (this.CheckProgressIsRunning(filePath, $"Google://{targetFolderId}/{fileInfo.Name}")) {
+            string realFilePath = sigFilePath.Replace(".sig", string.Empty);
+            string realFileName = realFilePath.Replace("\\", "/").Split('/').Last().ToLower();
+
+            if (!File.Exists(realFilePath)) {
+                throw new Exception($"File data {realFileName} tidak ditemukan, harap taruh di dalam folder yang sama dengan file sign {sigFileName}");
+            }
+
+            var fileInfo = new FileInfo(realFilePath);
+
+            if (this.CheckProgressIsRunning(realFilePath, $"Google://{targetFolderId}/{fileInfo.Name}")) {
                 throw new Exception($"Proses {fileInfo.Name} sedang berjalan");
             }
 
-            // string allowedMime = this._config.Get<string>("LocalAllowedFileMime", this._app.GetConfig("local_allowed_file_mime"));
-            // string selectedMime = this._chiper.GetMime(filePath);
+            // string allowedMime = this._config.Get<string>("AllowedFileMime", this._app.GetConfig("allowed_file_mime"));
+            // string selectedMime = this._chiper.GetMime(realFilePath);
             // if (string.IsNullOrEmpty(allowedMime) || selectedMime != allowedMime) {
             //     throw new Exception("Jenis MiMe file salah");
             // }
 
-            string fullSign = this._config.Get<string>("LocalAllowedFilePrimary", this._app.GetConfig("local_allowed_file_sign_primary"));
-            bool checkSign = this._berkas.CheckSign(fileInfo, fullSign);
-            if (!checkSign) {
-                fullSign = this._config.Get<string>("LocalAllowedFileSignSecondary", this._app.GetConfig("local_allowed_file_sign_secondary"));
-                checkSign = this._berkas.CheckSign(fileInfo, fullSign, false);
-                if (!checkSign) {
-                    throw new Exception("File rusak / corrupt / Tanda tangan tidak sesuai");
-                }
+            string publicKeyFilePath = Path.Combine(this._app.AppLocation, "publicKey.asc");
+            if (!this._pgpRsa.IsValidPublicKeyFile(publicKeyFilePath)) {
+                throw new Exception("File verifikator tidak valid");
+            }
+
+            if (!this._pgpRsa.VerifyFileDetachedWithPublicKeyFile(realFilePath, publicKeyFilePath, sigFilePath)) {
+                throw new Exception("File rusak / corrupt / tanda tangan tidak sesuai");
             }
 
             DialogResult dialogResult = DialogResult.Yes;
@@ -1218,7 +1229,7 @@ namespace GoogleCloudStorage.Panels {
             }
 
             if (dialogResult == DialogResult.Yes) {
-                int idx = this.dgQueue.Rows.Add(filePath, "===>>>", $"Google://{targetFolderId}/{fileInfo.Name}");
+                int idx = this.dgQueue.Rows.Add(realFilePath, "===>>>", $"Google://{targetFolderId}/{fileInfo.Name}");
                 DataGridViewRow dgvrQueue = this.dgQueue.Rows[idx];
 
                 this._logger.WriteInfo("Antrian",
@@ -1333,7 +1344,7 @@ namespace GoogleCloudStorage.Panels {
 
                                 string fn = fileInfo.Name.Replace("\\", "/").Split('/').Last().ToLower();
 
-                                string fp = this._config.Get<string>("FileNamePattern", this._app.GetConfig("file_name_pattern"));
+                                string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
                                 Match rgx = Regex.Match(fn, fp);
                                 if (!rgx.Success) {
                                     throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
@@ -1418,18 +1429,20 @@ namespace GoogleCloudStorage.Panels {
                 dynamic item = this.lvRemote.SelectedItems[0].Tag;
                 if (item is GcsObject || item.Kind == "storage#object") {
                     string selectedLocalFilePath = null;
-                    string file_ext = this._config.Get<string>("LocalAllowedFileExt", this._app.GetConfig("local_allowed_file_ext"));
+                    string file_ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
+
+                    file_ext = file_ext.Replace(".sig", string.Empty);
 
                     using (var fd = new SaveFileDialog()) {
                         fd.InitialDirectory = this._app.AppLocation;
                         fd.RestoreDirectory = true;
                         fd.CheckPathExists = true;
                         fd.FileName = item.Name;
-                        fd.Filter = $"MemoryDump files (*{file_ext})|*{file_ext}";
-                        fd.Title = $"Save {item.Name}";
+                        fd.Filter = $"Archive files (*{file_ext})|*{file_ext}";
+                        fd.Title = $"Simpan {item.Name}";
                         fd.DefaultExt = file_ext;
                         if (fd.ShowDialog() != DialogResult.OK) {
-                            throw new Exception($"Gagal menentukan lokasi penyimpanan file idm_***_gxxx_xxxxxx{file_ext}");
+                            throw new Exception($"Gagal menentukan lokasi penyimpanan file {item.Name}");
                         }
 
                         selectedLocalFilePath = fd.FileName;
