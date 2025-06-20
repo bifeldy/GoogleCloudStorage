@@ -720,7 +720,7 @@ namespace GoogleCloudStorage.Panels {
                 this.lvRemote.Columns.AddRange(columnHeader);
                 ListViewItem[] lvis = this.allBuckets.Where(bckt => {
                     return bckt.Name.ToUpper().Contains(this.txtFilter.Text.ToUpper());
-                }).Select(bckt => {
+                }).OrderBy(bckt => bckt.Name).Select(bckt => {
                     var lvi = new ListViewItem { Tag = bckt, Text = bckt.Name, ImageIndex = 0 };
                     _ = lvi.SubItems.Add(bckt.Updated.ToString());
                     return lvi;
@@ -768,7 +768,7 @@ namespace GoogleCloudStorage.Panels {
                 this.lvRemote.Columns.AddRange(columnHeader);
                 ListViewItem[] lvis = this.allObjects.Where(obj => {
                     return obj.Name.ToUpper().Contains(this.txtFilter.Text.ToUpper());
-                }).Select(obj => {
+                }).OrderByDescending(obj => obj.Updated).Select(obj => {
                     var lvi = new ListViewItem { Tag = obj, Text = obj.Name, ImageIndex = 0 };
                     _ = lvi.SubItems.Add(this._converter.FormatByteSizeHumanReadable((long)obj.Size));
                     _ = lvi.SubItems.Add(obj.Updated.ToString());
@@ -894,6 +894,11 @@ namespace GoogleCloudStorage.Panels {
                         var file2 = new List<GcsObject>();
                         foreach (GcsObject obj in objects) {
                             Match rgx = Regex.Match(obj.Name.ToLower(), fp);
+                            if (!rgx.Success) {
+                                string _fp = fp.Replace(".7z.sig", string.Empty);
+                                rgx = Regex.Match(obj.Name.ToLower(), _fp);
+                            }
+
                             if (rgx.Success && rgx.Groups.Count == 5) {
                                 if (rgx.Groups[1].Value.ToLower() == "metadata") {
                                     file1.Add(obj);

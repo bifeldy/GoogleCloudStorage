@@ -12,101 +12,85 @@
 
 using System;
 using System.Collections;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace GoogleCloudStorage.Components {
 
-    /// <summary>
-    /// This class is an implementation of the 'IComparer' interface.
-    /// </summary>
     public sealed class ListViewColumnSorter : IComparer {
-        /// <summary>
-        /// Specifies the column to be sorted
-        /// </summary>
-        private int ColumnToSort;
-        /// <summary>
-        /// Specifies the order in which to sort (i.e. 'Ascending').
-        /// </summary>
-        private SortOrder OrderOfSort;
-        /// <summary>
-        /// Case insensitive comparer object
-        /// </summary>
+
+        public int SortColumn { set; get; }
+        public SortOrder Order { set; get; }
+
         private readonly CaseInsensitiveComparer ObjectCompare;
 
-        /// <summary>
-        /// Class constructor.  Initializes various elements
-        /// </summary>
         public ListViewColumnSorter() {
-            // Initialize the column to '0'
-            this.ColumnToSort = 0;
-
-            // Initialize the sort order to 'none'
-            this.OrderOfSort = SortOrder.None;
-
-            // Initialize the CaseInsensitiveComparer object
+            this.SortColumn = 0;
+            this.Order = SortOrder.None;
             this.ObjectCompare = new CaseInsensitiveComparer();
         }
 
-        /// <summary>
-        /// This method is inherited from the IComparer interface.  It compares the two objects passed using a case insensitive comparison.
-        /// </summary>
-        /// <param name="x">First object to be compared</param>
-        /// <param name="y">Second object to be compared</param>
-        /// <returns>The result of the comparison. "0" if equal, negative if 'x' is less than 'y' and positive if 'x' is greater than 'y'</returns>
-        public int Compare(object x, object y) {
-            int compareResult;
-            ListViewItem listviewX, listviewY;
+        private bool IsHumanReadableSize(string text) {
+            return Regex.IsMatch(text, @"^\d+(\.\d+)?\s?(B|KB|MB|GB|TB)$", RegexOptions.IgnoreCase);
+        }
 
-            // Cast the objects to be compared to ListViewItem objects
-            listviewX = (ListViewItem) x;
-            listviewY = (ListViewItem) y;
+        private long ParseSizeStringToBytes(string sizeStr) {
+            Match match = Regex.Match(sizeStr.Trim(), @"(?i)^(?<value>\d+(\.\d+)?)\s?(?<unit>B|KB|MB|GB|TB)$");
 
-            decimal num = 0;
-            if (decimal.TryParse(listviewX.SubItems[this.ColumnToSort].Text, out num)) {
-                compareResult = decimal.Compare(num, Convert.ToDecimal(listviewY.SubItems[this.ColumnToSort].Text));
-            }
-            else {
-                // Compare the two items
-                compareResult = this.ObjectCompare.Compare(listviewX.SubItems[this.ColumnToSort].Text, listviewY.SubItems[this.ColumnToSort].Text);
-            }
-
-            // Calculate correct return value based on object comparison
-            if (this.OrderOfSort == SortOrder.Ascending) {
-                // Ascending sort is selected, return normal result of compare operation
-                return compareResult;
-            }
-            else if (this.OrderOfSort == SortOrder.Descending) {
-                // Descending sort is selected, return negative result of compare operation
-                return -compareResult;
-            }
-            else {
-                // Return '0' to indicate they are equal
+            if (!match.Success) {
                 return 0;
             }
+
+            double value = double.Parse(match.Groups["value"].Value);
+            string unit = match.Groups["unit"].Value.ToUpper();
+
+            switch (unit) {
+                case "TB":
+                    value *= 1024;
+                    goto case "GB";
+                case "GB":
+                    value *= 1024;
+                    goto case "MB";
+                case "MB":
+                    value *= 1024;
+                    goto case "KB";
+                case "KB":
+                    value *= 1024;
+                    break;
+                case "B":
+                default:
+                    break;
+            }
+
+            return (long)value;
         }
 
-        /// <summary>
-        /// Gets or sets the number of the column to which to apply the sorting operation (Defaults to '0').
-        /// </summary>
-        public int SortColumn {
-            set {
-                this.ColumnToSort = value;
-            }
-            get {
-                return this.ColumnToSort;
-            }
-        }
+        public int Compare(object x, object y) {
+            int compareResult = 0;
 
-        /// <summary>
-        /// Gets or sets the order of sorting to apply (for example, 'Ascending' or 'Descending').
-        /// </summary>
-        public SortOrder Order {
-            set {
-                this.OrderOfSort = value;
+            var listviewX = (ListViewItem)x;
+            var listviewY = (ListViewItem)y;
+
+            string textX = listviewX.SubItems[this.SortColumn].Text;
+            string textY = listviewY.SubItems[this.SortColumn].Text;
+
+            if (decimal.TryParse(textX, out decimal numX) && decimal.TryParse(textY, out decimal numY)) {
+                compareResult = decimal.Compare(numX, numY);
             }
-            get {
-                return this.OrderOfSort;
+            else if (DateTime.TryParse(textX, out DateTime dateX) && DateTime.TryParse(textY, out DateTime dateY)) {
+                compareResult = DateTime.Compare(dateX, dateY);
             }
+            else if (this.IsHumanReadableSize(textX) && this.IsHumanReadableSize(textY)) {
+                long sizeX = this.ParseSizeStringToBytes(textX);
+                long sizeY = this.ParseSizeStringToBytes(textY);
+                compareResult = sizeX.CompareTo(sizeY);
+            }
+            else {
+                compareResult = this.ObjectCompare.Compare(textX, textY);
+            }
+
+            return this.Order == SortOrder.Ascending ? compareResult :
+                   this.Order == SortOrder.Descending ? -compareResult : 0;
         }
 
     }
