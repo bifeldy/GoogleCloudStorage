@@ -1350,6 +1350,8 @@ namespace GoogleCloudStorage.Panels {
                                 string fn = fileInfo.Name.Replace("\\", "/").Split('/').Last().ToLower();
 
                                 string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
+                                fp = fp.Replace(".7z.sig", string.Empty);
+
                                 Match rgx = Regex.Match(fn, fp);
                                 if (!rgx.Success) {
                                     throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
