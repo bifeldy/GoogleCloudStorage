@@ -156,7 +156,7 @@ namespace GoogleCloudStorage.Panels {
                 this.lvColumnSorter = new ListViewColumnSorter();
                 this.lvRemote.ListViewItemSorter = this.lvColumnSorter;
 
-                this.CheckIsAdmin();
+                _ = await this.CheckIsAdmin();
                 this.CheckWeeklyUpload();
 
                 this.timerQueue.Enabled = true;
@@ -528,7 +528,7 @@ namespace GoogleCloudStorage.Panels {
             });
         }
 
-        private async void CheckIsAdmin() {
+        private async Task<bool> CheckIsAdmin() {
             try {
                 string isAdm = await this._db.SQLite_ExecScalar<string>(@"
                     SELECT isadm FROM users
@@ -536,16 +536,21 @@ namespace GoogleCloudStorage.Panels {
                 ", new List<CDbQueryParamBind> {
                     new CDbQueryParamBind { NAME = "uname", VALUE = this._db.LoggedInUsername }
                 });
-                if (isAdm.ToUpper() == "Y") {
+
+                bool _isAdm = isAdm.ToUpper() == "Y";
+                if (_isAdm) {
                     this.btnDownload.Visible = true;
                     this.btnDdl.Visible = true;
                     this.lblExp.Visible = true;
                     this.dtpExp.Visible = true;
                 }
+
+                return _isAdm;
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
                 _ = MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
         }
 
@@ -565,7 +570,7 @@ namespace GoogleCloudStorage.Panels {
                 string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
                 string file_ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
 
-                using (DbDataReader reader = await this._db.Sqlite_ExecReaderAsync(@"
+                using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(@"
                     SELECT year, week, dc_kode, file_1_name, file_1_date, file_2_name, file_2_date
                     FROM upload_log
                     WHERE year = :year AND week = :week AND month = :month
@@ -628,7 +633,7 @@ namespace GoogleCloudStorage.Panels {
                     reader.Close();
                 }
 
-                this._db.OraPg_MsSqlLiteCloseAllConnection();
+                this._db.CloseAllConnection();
                 if (rowCount == 0) {
                     string info = "Belum Ada File Yang Di Unggah Minggu Ini";
                     if (this.onWriteLogProgress != null) {
@@ -729,6 +734,10 @@ namespace GoogleCloudStorage.Panels {
                 this.lvRemote.Items.AddRange(lvis);
                 this.UpdateLastActivity();
             }
+            catch (TaskCanceledException ex) {
+                this._logger.WriteError(ex);
+                _ = MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
                 _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -777,6 +786,10 @@ namespace GoogleCloudStorage.Panels {
                 this.lvRemote.Items.Clear();
                 this.lvRemote.Items.AddRange(lvis);
                 this.UpdateLastActivity();
+            }
+            catch (TaskCanceledException ex) {
+                this._logger.WriteError(ex);
+                _ = MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
@@ -922,20 +935,27 @@ namespace GoogleCloudStorage.Panels {
                             "FILE_2_DATE_TIME"
                         };
 
-                        string exportPath = Path.Combine(this._csv.CsvFolderPath, $"{DateTime.Now:yyy-MM-dd_HH-mm-ss}.csv");
+                        string exportPath = Path.Combine(this._csv.CsvFolderPath, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv");
                         using (var writer = new StreamWriter(exportPath)) {
                             writer.WriteLine(string.Join("|", csvColumn).ToUpper());
                             foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
                                 string fileName = f1.Name.ToLower().Replace("\\", "/").Split('/').Last();
-                                var fileDate = DateTime.ParseExact(fileName.Split('_').Last().Split('.').First().ToLower(), "yyMMdd", CultureInfo.InvariantCulture);
-                                string fn1 = "idm_metadata_g".ToLower();
+
+                                string filedate = fileName.Split('_').Last().Split('.').First().ToLower();
+                                var fileDate = DateTime.ParseExact(
+                                    filedate,
+                                    filedate.Length == 6 ? "yyMMdd" : "yyyyMMdd",
+                                    CultureInfo.InvariantCulture
+                                );
+
+                                string fn1 = "idm_metadata_".ToLower();
                                 string newLine = string.Empty;
                                 if (fileName.StartsWith(fn1)) {
                                     int index = fileName.IndexOf(fn1);
-                                    string xxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
-                                    string dc_kode = $"G{xxx_xxxxxx.Substring(0, 3)}".ToUpper();
+                                    string xxxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
+                                    string dc_kode = xxxx_xxxxxx.Substring(0, 4).ToUpper();
                                     newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{fileName}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
-                                    GcsObject f2 = file2.Find(f => f.Name.EndsWith(xxx_xxxxxx));
+                                    GcsObject f2 = file2.Find(f => f.Name.EndsWith(xxxx_xxxxxx));
                                     newLine += (f2 is null) ? "||" : $"{f2.Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
                                     writer.WriteLine(newLine);
                                 }
@@ -1004,10 +1024,10 @@ namespace GoogleCloudStorage.Panels {
                     fd.RestoreDirectory = true;
                     fd.CheckFileExists = true;
                     fd.Filter = $"Sig files (*{file_ext})|*{file_ext}";
-                    fd.Title = $"Select idm_metadata_gxxx_xxxxxx{file_ext} | idm_*table_gxxx_xxxxxx{file_ext}";
+                    fd.Title = $"Select idm_metadata_xxxx_xxxxxx{file_ext} | idm_*table_xxxx_xxxxxx{file_ext}";
                     fd.DefaultExt = file_ext;
                     if (fd.ShowDialog() != DialogResult.OK) {
-                        throw new Exception($"Gagal membuka file idm_***_gxxx_xxxxxx{file_ext}");
+                        throw new Exception($"Gagal membuka file idm_***_xxxx_xxxxxx{file_ext}");
                     }
 
                     selectedLocalFilePath = fd.FileName;
@@ -1030,7 +1050,12 @@ namespace GoogleCloudStorage.Panels {
                     throw new Exception($"Hanya file {file_ext} yang diperbolehkan");
                 }
 
-                var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
+                var fileDate = DateTime.ParseExact(
+                    rgx.Groups[3].Value,
+                    rgx.Groups[3].Value.Length == 6 ? "yyMMdd" : "yyyyMMdd",
+                    CultureInfo.InvariantCulture
+                );
+
                 if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
                     throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
                 }
@@ -1042,7 +1067,7 @@ namespace GoogleCloudStorage.Panels {
 
                 int rowCount = 0;
                 using (
-                    DbDataReader reader = await this._db.Sqlite_ExecReaderAsync(@"
+                    DbDataReader reader = await this._db.SQLite_ExecReaderAsync(@"
                         SELECT file_1_name, file_1_date, file_2_name, file_2_date
                         FROM upload_log
                         WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode
@@ -1075,7 +1100,7 @@ namespace GoogleCloudStorage.Panels {
                     reader.Close();
                 }
 
-                this._db.OraPg_MsSqlLiteCloseAllConnection();
+                this._db.CloseAllConnection();
                 if (rowCount == 0) {
                     _ = await this._db.SQLite_ExecQuery(@"
                         INSERT INTO upload_log(year, week, month, dc_kode)
@@ -1115,10 +1140,10 @@ namespace GoogleCloudStorage.Panels {
 
         private async Task Upload12(string selectedLocalFilePath, Match rgx) {
             if (rgx.Groups[1].Value.ToLower() != "metadata") {
-                throw new Exception($"Harap memilih file metadata `idm_metadata_gxxx_xxxxxx{rgx.Groups[4].Value}`");
+                throw new Exception($"Harap memilih file metadata `idm_metadata_xxxx_xxxxxx{rgx.Groups[4].Value}`");
             }
 
-            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.ext :: Ada Filenya Gak Di 1 Folder Pasangan
+            // Check Nama File 2 :: idm_*table_xxxx_xxxxxx.ext :: Ada Filenya Gak Di 1 Folder Pasangan
             string file2pattern = $"idm_*table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}";
             var fp = Directory.EnumerateFiles(
                 Path.GetDirectoryName(selectedLocalFilePath),
@@ -1140,7 +1165,7 @@ namespace GoogleCloudStorage.Panels {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
             }
 
-            // Check Nama File 1 :: idm_metadata_gxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 2
+            // Check Nama File 1 :: idm_metadata_xxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 2
             string file1name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
             string target = $"idm_metadata_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}".ToLower();
             if (file1name != target) {
@@ -1157,7 +1182,7 @@ namespace GoogleCloudStorage.Panels {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
             }
 
-            // Check Nama File 2 :: idm_*table_gxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 1
+            // Check Nama File 2 :: idm_*table_xxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 1
             string file2name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
             string target = $"table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}".ToLower();
             if (!file2name.EndsWith(target)) {
@@ -1208,19 +1233,36 @@ namespace GoogleCloudStorage.Panels {
                 throw new Exception($"Proses {fileInfo.Name} sedang berjalan");
             }
 
+            //
+            // Windows Lawas Ga Detect MiMe / Ekstensi Terbaru ~
+            //
             // string allowedMime = this._config.Get<string>("AllowedFileMime", this._app.GetConfig("allowed_file_mime"));
             // string selectedMime = this._chiper.GetMime(realFilePath);
             // if (string.IsNullOrEmpty(allowedMime) || selectedMime != allowedMime) {
             //     throw new Exception("Jenis MiMe file salah");
             // }
+            //
 
-            string publicKeyFilePath = Path.Combine(this._app.AppLocation, "publicKey.asc");
-            if (!this._pgpRsa.IsValidPublicKeyFile(publicKeyFilePath)) {
-                throw new Exception("File verifikator tidak valid");
+            string errPgp = string.Empty;
+
+            try {
+                string publicKeyFilePath = Path.Combine(this._app.AppLocation, "publicKey.asc");
+                if (!File.Exists(publicKeyFilePath)) {
+                    errPgp = "Public Key verifikator tidak tersedia";
+                }
+                else if (!this._pgpRsa.IsValidPublicKeyFile(publicKeyFilePath)) {
+                    errPgp = "Public Key verifikator tidak valid";
+                }
+                else if (!this._pgpRsa.VerifyFileDetachedWithPublicKeyFile(realFilePath, publicKeyFilePath, sigFilePath)) {
+                    errPgp = "File rusak / corrupt / signature tidak sesuai";
+                }
+            }
+            catch {
+                errPgp = "File sign key :: rusak / tidak valid";
             }
 
-            if (!this._pgpRsa.VerifyFileDetachedWithPublicKeyFile(realFilePath, publicKeyFilePath, sigFilePath)) {
-                throw new Exception("File rusak / corrupt / tanda tangan tidak sesuai");
+            if (!string.IsNullOrEmpty(errPgp)) {
+                throw new Exception(errPgp);
             }
 
             DialogResult dialogResult = DialogResult.Yes;
@@ -1286,7 +1328,7 @@ namespace GoogleCloudStorage.Panels {
                             GcsMediaUpload mediaUpload = this._gcs.GenerateUploadMedia(fileInfo, targetFolderId, stream);
                             Uri uploadSession = null;
 
-                            using (DbDataReader reader = await this._db.Sqlite_ExecReaderAsync(@"
+                            using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(@"
                                 SELECT file_md5, file_session, file_date
                                 FROM upload_chunk
                                 WHERE file_md5 = :file_md5
@@ -1307,7 +1349,7 @@ namespace GoogleCloudStorage.Panels {
                                 reader.Close();
                             }
 
-                            this._db.OraPg_MsSqlLiteCloseAllConnection();
+                            this._db.CloseAllConnection();
 
                             if (uploadSession == null) {
                                 _ = await this._db.SQLite_ExecQuery(@"
@@ -1342,20 +1384,20 @@ namespace GoogleCloudStorage.Panels {
                             }, true);
                         }
 
+                        string fn = fileInfo.Name.Replace("\\", "/").Split('/').Last().ToLower();
+
+                        string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
+                        fp = fp.Replace(".7z.sig", string.Empty);
+
+                        Match rgx = Regex.Match(fn, fp);
+                        if (!rgx.Success) {
+                            throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
+                        }
+
                         if (uploaded.Exception == null && uploaded.Status == EGcsUploadStatus.Completed) {
                             try {
                                 string sql = @"UPDATE upload_log SET";
                                 var param = new List<CDbQueryParamBind>();
-
-                                string fn = fileInfo.Name.Replace("\\", "/").Split('/').Last().ToLower();
-
-                                string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
-                                fp = fp.Replace(".7z.sig", string.Empty);
-
-                                Match rgx = Regex.Match(fn, fp);
-                                if (!rgx.Success) {
-                                    throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
-                                }
 
                                 if (rgx.Groups[1].Value.ToLower() == "metadata") {
                                     sql += " file_1_name = :file_1_name, file_1_date = :file_1_date";
@@ -1369,8 +1411,14 @@ namespace GoogleCloudStorage.Panels {
                                 }
 
                                 sql += " WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode";
-                                string filedate = fileInfo.Name.Replace("\\", "/").Split('/').Last().Split('_').Last().Split('.').First().ToLower();
-                                var fileDate = DateTime.ParseExact(filedate, "yyMMdd", CultureInfo.InvariantCulture);
+
+                                string filedate = fn.Split('_').Last().Split('.').First().ToLower();
+                                var fileDate = DateTime.ParseExact(
+                                    filedate,
+                                    filedate.Length == 6 ? "yyMMdd" : "yyyyMMdd",
+                                    CultureInfo.InvariantCulture
+                                );
+
                                 param.Add(new CDbQueryParamBind { NAME = "year", VALUE = fileDate.Year });
                                 param.Add(new CDbQueryParamBind { NAME = "week", VALUE = fileDate.GetWeekOfYear() });
                                 param.Add(new CDbQueryParamBind { NAME = "month", VALUE = fileDate.Month });
@@ -1384,9 +1432,9 @@ namespace GoogleCloudStorage.Panels {
                                     new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 }
                                 });
                             }
-                            catch (Exception ex) {
-                                this._logger.WriteError(ex);
-                                _ = MessageBox.Show(ex.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            catch (Exception err) {
+                                this._logger.WriteError(err);
+                                _ = MessageBox.Show(err.Message, "Database Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
 
                             try {
@@ -1403,11 +1451,45 @@ namespace GoogleCloudStorage.Panels {
                                     if (fileInfo.Exists) {
                                         fileInfo.Delete();
                                     }
+
+                                    string fileSigPath = fileLocal.Replace("\\", "/");
+                                    if (File.Exists($"{fileSigPath}.sig")) {
+                                        File.Delete($"{fileSigPath}.sig");
+                                    }
+
+                                    try {
+                                        if (rgx.Groups[2].Value.ToLower() == "xgps") {
+                                            var fileDate = DateTime.ParseExact(
+                                                rgx.Groups[3].Value,
+                                                rgx.Groups[3].Value.Length == 6 ? "yyMMdd" : "yyyyMMdd",
+                                                CultureInfo.InvariantCulture
+                                            );
+
+                                            List<string> full_table = await this._db.MsSql_GetList<string>($@"
+                                                SELECT
+                                                    CONCAT(table_schema , '.', table_name) AS full_table
+                                                FROM
+                                                    information_schema.tables
+                                                WHERE
+                                                    UPPER(table_type) = 'BASE TABLE'
+                                                    AND LOWER(table_schema) IN ('gpsloc_tgl')
+                                                    AND LOWER(table_name) LIKE '%gps%{fileDate.Year}{fileDate.Month}%'
+                                            ");
+
+                                            foreach (string table in full_table) {
+                                                _ = await this._db.MySql_ExecQuery($"DROP TABLE IF EXISTS {table}");
+                                            }
+                                        }
+                                    }
+                                    catch (Exception er) {
+                                        this._logger.WriteError(er);
+                                        _ = MessageBox.Show(er.Message, "Delete Table Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    }
                                 }
                             }
-                            catch (Exception ex) {
-                                this._logger.WriteError(ex);
-                                _ = MessageBox.Show(ex.Message, "Delete Local Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            catch (Exception err) {
+                                this._logger.WriteError(err);
+                                _ = MessageBox.Show(err.Message, "Delete Local Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
                     }
@@ -1501,13 +1583,13 @@ namespace GoogleCloudStorage.Panels {
                                 FileName = "explorer.exe"
                             });
                         }
-                        catch (TaskCanceledException ex) {
-                            this._logger.WriteError(ex);
+                        catch (TaskCanceledException err) {
+                            this._logger.WriteError(err);
                             _ = MessageBox.Show("Koneksi terputus", "Network Timeout", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
-                        catch (Exception ex) {
-                            this._logger.WriteError(ex);
-                            _ = MessageBox.Show(ex.Message, "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        catch (Exception err) {
+                            this._logger.WriteError(err);
+                            _ = MessageBox.Show(err.Message, "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     });
                 }
