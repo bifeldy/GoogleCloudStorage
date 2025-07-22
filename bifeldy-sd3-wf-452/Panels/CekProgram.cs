@@ -71,8 +71,16 @@ namespace GoogleCloudStorage.Panels {
                         await this._updater.UpdateSqliteDatabase();
                     }
                     catch (Exception ex) {
-                        _ = MessageBox.Show(ex.Message, "Program Checker", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this._app.Exit();
+                        DialogResult res = MessageBox.Show(
+                            $"{ex.Message} :: Tetap Lanjutkan ?",
+                            "Program Checker",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Error
+                        );
+
+                        if (res != DialogResult.Yes) {
+                            this._app.Exit();
+                        }
                     }
                 });
             }

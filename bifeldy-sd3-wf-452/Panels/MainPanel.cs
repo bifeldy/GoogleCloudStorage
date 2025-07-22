@@ -595,11 +595,12 @@ namespace GoogleCloudStorage.Panels {
                             }
                             else {
                                 pending++;
+                                string _fp = fp.Replace(".sig", string.Empty);
 
                                 if (!reader.IsDBNull(3) && !reader.IsDBNull(4)) {
                                     string fn1 = reader.GetString(3);
 
-                                    Match rgx = Regex.Match(fn1, fp);
+                                    Match rgx = Regex.Match(fn1, _fp);
                                     if (!rgx.Success) {
                                         throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
                                     }
@@ -611,7 +612,7 @@ namespace GoogleCloudStorage.Panels {
                                     // -- SAMPE BISA MASUK KE SINI SIH DB DI OTAK ATIK PASTI !!
                                     string fn2 = reader.GetString(5);
 
-                                    Match rgx = Regex.Match(fn2, fp);
+                                    Match rgx = Regex.Match(fn2, _fp);
                                     if (!rgx.Success) {
                                         throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
                                     }
@@ -620,8 +621,8 @@ namespace GoogleCloudStorage.Panels {
                                     uploadInfo += Environment.NewLine + $"[#] {fn2} :: " + new DateTime(long.Parse(reader.GetInt64(6).ToString())).ToString();
                                 }
                                 else {
-                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_metadata_{dc_kode}_xxxxxx{file_ext} BELUM DI UNGGAH";
-                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_*table_{dc_kode}_xxxxxx{file_ext} BELUM DI UNGGAH";
+                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_metadata_{dc_kode}_xxxxxx.*{file_ext} BELUM DI UNGGAH";
+                                    uploadInfo += Environment.NewLine + $"[#] FILE idm_*table_{dc_kode}_xxxxxx.*{file_ext} BELUM DI UNGGAH";
                                 }
 
                                 uploadInfo += Environment.NewLine;
@@ -816,6 +817,8 @@ namespace GoogleCloudStorage.Panels {
                     fd.CheckFileExists = true;
                     fd.Filter = "credentials (*.txt,*.json)|*.txt;*.json";
                     fd.Title = "Open credentials(.txt|.json)";
+                    fd.RestoreDirectory = true;
+
                     if (fd.ShowDialog() != DialogResult.OK) {
                         throw new Exception("Gagal memuat file credentials.json");
                     }
@@ -906,13 +909,14 @@ namespace GoogleCloudStorage.Panels {
                         var file1 = new List<GcsObject>();
                         var file2 = new List<GcsObject>();
                         foreach (GcsObject obj in objects) {
-                            Match rgx = Regex.Match(obj.Name.ToLower(), fp);
+                            string _fp = fp.Replace(".sig", string.Empty);
+                            Match rgx = Regex.Match(obj.Name.ToLower(), _fp);
                             if (!rgx.Success) {
-                                string _fp = fp.Replace(".7z.sig", string.Empty);
+                                _fp = _fp.Replace(".7z", string.Empty);
                                 rgx = Regex.Match(obj.Name.ToLower(), _fp);
                             }
 
-                            if (rgx.Success && rgx.Groups.Count == 5) {
+                            if (rgx.Success) {
                                 if (rgx.Groups[1].Value.ToLower() == "metadata") {
                                     file1.Add(obj);
                                 }
@@ -940,13 +944,25 @@ namespace GoogleCloudStorage.Panels {
                             writer.WriteLine(string.Join("|", csvColumn).ToUpper());
                             foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
                                 string fileName = f1.Name.ToLower().Replace("\\", "/").Split('/').Last();
+                                string _fp = fp.Replace(".sig", string.Empty);
 
-                                string filedate = fileName.Split('_').Last().Split('.').First().ToLower();
-                                var fileDate = DateTime.ParseExact(
-                                    filedate,
-                                    filedate.Length == 6 ? "yyMMdd" : "yyyyMMdd",
-                                    CultureInfo.InvariantCulture
-                                );
+                                Match rgx = Regex.Match(fileName.ToLower(), _fp);
+                                if (!rgx.Success) {
+                                    _fp = _fp.Replace(".7z", string.Empty);
+                                    rgx = Regex.Match(fileName.ToLower(), _fp);
+                                }
+
+                                if (!rgx.Success) {
+                                    continue;
+                                }
+
+                                DateTime fileDate = DateTime.MinValue;
+                                if (rgx.Groups[2].Value.ToLower() == "xgps") {
+                                    fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
+                                }
+                                else {
+                                    fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
+                                }
 
                                 string fn1 = "idm_metadata_".ToLower();
                                 string newLine = string.Empty;
@@ -1020,14 +1036,16 @@ namespace GoogleCloudStorage.Panels {
 
                 string selectedLocalFilePath = null;
                 using (var fd = new OpenFileDialog()) {
-                    fd.InitialDirectory = this._app.AppLocation;
+                    fd.InitialDirectory = Directory.Exists("D:\\backupdbgps") ? "D:\\backupdbgps" : this._app.AppLocation;
                     fd.RestoreDirectory = true;
                     fd.CheckFileExists = true;
                     fd.Filter = $"Sig files (*{file_ext})|*{file_ext}";
-                    fd.Title = $"Select idm_metadata_xxxx_xxxxxx{file_ext} | idm_*table_xxxx_xxxxxx{file_ext}";
+                    fd.Title = $"Select idm_metadata_xxxx_xxxxxx.*{file_ext} | idm_*table_xxxx_xxxxxx.*{file_ext}";
                     fd.DefaultExt = file_ext;
+                    fd.RestoreDirectory = true;
+
                     if (fd.ShowDialog() != DialogResult.OK) {
-                        throw new Exception($"Gagal membuka file idm_***_xxxx_xxxxxx{file_ext}");
+                        throw new Exception($"Gagal membuka file idm_***_xxxx_xxxxxx.*{file_ext}");
                     }
 
                     selectedLocalFilePath = fd.FileName;
@@ -1046,18 +1064,19 @@ namespace GoogleCloudStorage.Panels {
                     throw new Exception($"Format nama file {fn} salah, diperbolehkan {fp}");
                 }
 
-                if (rgx.Groups[4].Value != file_ext) {
-                    throw new Exception($"Hanya file {file_ext} yang diperbolehkan");
+                if (rgx.Groups[2].Value.ToLower() == "xgps") {
+                    var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
+
+                    if (fileDate.Month >= month) {
+                        throw new Exception($"File harus di bulan yang sudah lewat");
+                    }
                 }
+                else {
+                    var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
 
-                var fileDate = DateTime.ParseExact(
-                    rgx.Groups[3].Value,
-                    rgx.Groups[3].Value.Length == 6 ? "yyMMdd" : "yyyyMMdd",
-                    CultureInfo.InvariantCulture
-                );
-
-                if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
-                    throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
+                    if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
+                        throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
+                    }
                 }
 
                 string file1name = string.Empty;
@@ -1160,36 +1179,40 @@ namespace GoogleCloudStorage.Panels {
 
         private async Task Upload1(string selectedLocalFilePath, string file2name) {
             string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
-            Match rgx = Regex.Match(file2name, fp);
+            string _fp = fp.Replace(".sig", string.Empty);
+            Match rgx = Regex.Match(file2name, _fp);
             if (!rgx.Success) {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
             }
 
             // Check Nama File 1 :: idm_metadata_xxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 2
-            string file1name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-            string target = $"idm_metadata_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}".ToLower();
+            string _slfp = selectedLocalFilePath.Replace("\\", "/");
+            string file1name = _slfp.Split('/').Last().ToLower();
+            string target = $"idm_metadata_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}.sig".ToLower();
             if (file1name != target) {
                 throw new Exception($"File pasangan tidak sesuai, silahkan pilih {target}");
             }
 
-            await this.AddQueue(selectedLocalFilePath.Replace("\\", "/"));
+            await this.AddQueue(_slfp);
         }
 
         private async Task Upload2(string selectedLocalFilePath, string file1name) {
             string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
-            Match rgx = Regex.Match(file1name, fp);
+            string _fp = fp.Replace(".sig", string.Empty);
+            Match rgx = Regex.Match(file1name, _fp);
             if (!rgx.Success) {
                 throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
             }
 
             // Check Nama File 2 :: idm_*table_xxxx_xxxxxx.ext :: Sesuai Tidak Dengan File 1
-            string file2name = selectedLocalFilePath.Replace("\\", "/").Split('/').Last().ToLower();
-            string target = $"table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}".ToLower();
+            string _slfp = selectedLocalFilePath.Replace("\\", "/");
+            string file2name = _slfp.Split('/').Last().ToLower();
+            string target = $"table_{rgx.Groups[2].Value}_{rgx.Groups[3].Value}{rgx.Groups[4].Value}.sig".ToLower();
             if (!file2name.EndsWith(target)) {
                 throw new Exception($"File pasangan tidak sesuai, silahkan pilih idm_*{target}");
             }
 
-            await this.AddQueue(selectedLocalFilePath.Replace("\\", "/"));
+            await this.AddQueue(_slfp);
         }
 
         private bool CheckProgressIsRunning(string localPath, string remotePath) {
@@ -1258,7 +1281,7 @@ namespace GoogleCloudStorage.Panels {
                 }
             }
             catch {
-                errPgp = "File sign key :: rusak / tidak valid";
+                errPgp = "File sig :: rusak / tidak cocok dengan Public Key, harap hubungi DBA";
             }
 
             if (!string.IsNullOrEmpty(errPgp)) {
@@ -1319,8 +1342,13 @@ namespace GoogleCloudStorage.Panels {
 
                 string targetFolderId = googleUrl.Split('/').First();
 
+                // Paksa Ganti Thread -- Context Switching ~
+                await Task.Yield();
+
                 await Task.Run(async () => {
                     try {
+                        await Task.Yield();
+
                         string file_md5 = this._chiper.CalculateMD5File(fileInfo.FullName);
                         CGcsUploadProgress uploaded = null;
 
@@ -1387,9 +1415,9 @@ namespace GoogleCloudStorage.Panels {
                         string fn = fileInfo.Name.Replace("\\", "/").Split('/').Last().ToLower();
 
                         string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
-                        fp = fp.Replace(".7z.sig", string.Empty);
+                        string _fp = fp.Replace(".sig", string.Empty);
 
-                        Match rgx = Regex.Match(fn, fp);
+                        Match rgx = Regex.Match(fn, _fp);
                         if (!rgx.Success) {
                             throw new Exception($"Terjadi kesalahan, mohon fresh install ulang program baru");
                         }
@@ -1412,12 +1440,10 @@ namespace GoogleCloudStorage.Panels {
 
                                 sql += " WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode";
 
-                                string filedate = fn.Split('_').Last().Split('.').First().ToLower();
-                                var fileDate = DateTime.ParseExact(
-                                    filedate,
-                                    filedate.Length == 6 ? "yyMMdd" : "yyyyMMdd",
-                                    CultureInfo.InvariantCulture
-                                );
+                                DateTime fileDate = DateTime.Now;
+                                if (rgx.Groups[2].Value.ToLower() != "xgps") {
+                                    fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
+                                }
 
                                 param.Add(new CDbQueryParamBind { NAME = "year", VALUE = fileDate.Year });
                                 param.Add(new CDbQueryParamBind { NAME = "week", VALUE = fileDate.GetWeekOfYear() });
@@ -1458,14 +1484,10 @@ namespace GoogleCloudStorage.Panels {
                                     }
 
                                     try {
-                                        if (rgx.Groups[2].Value.ToLower() == "xgps") {
-                                            var fileDate = DateTime.ParseExact(
-                                                rgx.Groups[3].Value,
-                                                rgx.Groups[3].Value.Length == 6 ? "yyMMdd" : "yyyyMMdd",
-                                                CultureInfo.InvariantCulture
-                                            );
+                                        if (rgx.Groups[1].Value.ToLower() != "metadata" && rgx.Groups[2].Value.ToLower() == "xgps") {
+                                            var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
 
-                                            List<string> full_table = await this._db.MsSql_GetList<string>($@"
+                                            List<string> full_table = await this._db.MySql_GetList<string>($@"
                                                 SELECT
                                                     CONCAT(table_schema , '.', table_name) AS full_table
                                                 FROM
@@ -1473,7 +1495,7 @@ namespace GoogleCloudStorage.Panels {
                                                 WHERE
                                                     UPPER(table_type) = 'BASE TABLE'
                                                     AND LOWER(table_schema) IN ('gpsloc_tgl')
-                                                    AND LOWER(table_name) LIKE '%gps%{fileDate.Year}{fileDate.Month}%'
+                                                    AND LOWER(table_name) LIKE '%gps%{fileDate:yyyyMM}%'
                                             ");
 
                                             foreach (string table in full_table) {
@@ -1530,6 +1552,8 @@ namespace GoogleCloudStorage.Panels {
                         fd.Filter = $"Archive files (*{file_ext})|*{file_ext}";
                         fd.Title = $"Simpan {item.Name}";
                         fd.DefaultExt = file_ext;
+                        fd.RestoreDirectory = true;
+
                         if (fd.ShowDialog() != DialogResult.OK) {
                             throw new Exception($"Gagal menentukan lokasi penyimpanan file {item.Name}");
                         }
