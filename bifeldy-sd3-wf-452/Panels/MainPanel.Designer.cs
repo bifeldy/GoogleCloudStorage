@@ -34,7 +34,6 @@ namespace GoogleCloudStorage.Panels {
             this.lblStatus = new System.Windows.Forms.Label();
             this.appInfo = new System.Windows.Forms.Label();
             this.txtLog = new System.Windows.Forms.TextBox();
-            this.btnConnect = new System.Windows.Forms.Button();
             this.txtDirPath = new System.Windows.Forms.TextBox();
             this.btnHome = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
@@ -65,6 +64,9 @@ namespace GoogleCloudStorage.Panels {
             this.timerQueue = new System.Windows.Forms.Timer(this.components);
             this.label2 = new System.Windows.Forms.Label();
             this.numMaxProcess = new System.Windows.Forms.NumericUpDown();
+            this.reConnectMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.btnConnectWithCustomCredential = new System.Windows.Forms.ToolStripMenuItem();
+            this.btnConnect = new GoogleCloudStorage.Components.SplitButton();
             ((System.ComponentModel.ISupportInitialize)(this.imgDomar)).BeginInit();
             this.tabUpDownProgress.SuspendLayout();
             this.tabQueue.SuspendLayout();
@@ -76,6 +78,7 @@ namespace GoogleCloudStorage.Panels {
             this.tabSuccess.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).BeginInit();
+            this.reConnectMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // chkWindowsStartup
@@ -161,19 +164,6 @@ namespace GoogleCloudStorage.Panels {
             this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtLog.Size = new System.Drawing.Size(551, 100);
             this.txtLog.TabIndex = 15;
-            // 
-            // btnConnect
-            // 
-            this.btnConnect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
-            this.btnConnect.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.btnConnect.Location = new System.Drawing.Point(20, 170);
-            this.btnConnect.Name = "btnConnect";
-            this.btnConnect.Size = new System.Drawing.Size(190, 30);
-            this.btnConnect.TabIndex = 18;
-            this.btnConnect.Text = "Re/Connect";
-            this.btnConnect.UseVisualStyleBackColor = true;
-            this.btnConnect.Click += new System.EventHandler(this.BtnConnect_Click);
             // 
             // txtDirPath
             // 
@@ -565,10 +555,40 @@ namespace GoogleCloudStorage.Panels {
             0,
             0});
             // 
+            // reConnectMenu
+            // 
+            this.reConnectMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.btnConnectWithCustomCredential});
+            this.reConnectMenu.Name = "reConnectMenu";
+            this.reConnectMenu.Size = new System.Drawing.Size(247, 48);
+            // 
+            // btnConnectWithCustomCredential
+            // 
+            this.btnConnectWithCustomCredential.Name = "btnConnectWithCustomCredential";
+            this.btnConnectWithCustomCredential.Size = new System.Drawing.Size(246, 22);
+            this.btnConnectWithCustomCredential.Text = "Cari && Pakai Credential.json Lain";
+            this.btnConnectWithCustomCredential.Click += new System.EventHandler(this.BtnConnectWithCustomCredential_Click);
+            // 
+            // btnConnect
+            // 
+            this.btnConnect.AutoSize = true;
+            this.btnConnect.ContextMenuStrip = this.reConnectMenu;
+            this.btnConnect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.btnConnect.Location = new System.Drawing.Point(20, 170);
+            this.btnConnect.Name = "btnConnect";
+            this.btnConnect.Size = new System.Drawing.Size(190, 31);
+            this.btnConnect.SplitMenuStrip = this.reConnectMenu;
+            this.btnConnect.TabIndex = 18;
+            this.btnConnect.Text = "Re/Connect";
+            this.btnConnect.UseVisualStyleBackColor = true;
+            this.btnConnect.Click += new System.EventHandler(this.BtnConnect_Click);
+            // 
             // CMainPanel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.btnConnect);
             this.Controls.Add(this.numMaxProcess);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.dtpExp);
@@ -589,7 +609,6 @@ namespace GoogleCloudStorage.Panels {
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btnHome);
             this.Controls.Add(this.txtDirPath);
-            this.Controls.Add(this.btnConnect);
             this.Controls.Add(this.txtLog);
             this.Controls.Add(this.chkWindowsStartup);
             this.Controls.Add(this.userInfo);
@@ -611,6 +630,7 @@ namespace GoogleCloudStorage.Panels {
             this.tabSuccess.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).EndInit();
+            this.reConnectMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -625,7 +645,6 @@ namespace GoogleCloudStorage.Panels {
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label appInfo;
         private System.Windows.Forms.TextBox txtLog;
-        private System.Windows.Forms.Button btnConnect;
         private System.Windows.Forms.TextBox txtDirPath;
         private System.Windows.Forms.Button btnHome;
         private System.Windows.Forms.Button btnRefresh;
@@ -656,6 +675,9 @@ namespace GoogleCloudStorage.Panels {
         private System.Windows.Forms.Timer timerQueue;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.NumericUpDown numMaxProcess;
+        private System.Windows.Forms.ContextMenuStrip reConnectMenu;
+        private Components.SplitButton btnConnect;
+        private System.Windows.Forms.ToolStripMenuItem btnConnectWithCustomCredential;
     }
 
 }

@@ -808,15 +808,15 @@ namespace GoogleCloudStorage.Panels {
             this.SetIdleBusyStatus(true);
         }
 
-        private async void BtnConnect_Click(object sender, EventArgs e) {
+        private async void BtnConnectWithCustomCredential_Click(object sender, EventArgs e) {
             try {
                 string filePath = null;
                 using (var fd = new OpenFileDialog()) {
                     fd.InitialDirectory = this._app.AppLocation;
                     fd.RestoreDirectory = true;
                     fd.CheckFileExists = true;
-                    fd.Filter = "credentials (*.txt,*.json)|*.txt;*.json";
-                    fd.Title = "Open credentials(.txt|.json)";
+                    fd.Filter = "credentials (*.json)|*.json";
+                    fd.Title = "Open credentials.json";
                     fd.RestoreDirectory = true;
 
                     if (fd.ShowDialog() != DialogResult.OK) {
@@ -824,6 +824,28 @@ namespace GoogleCloudStorage.Panels {
                     }
 
                     filePath = fd.FileName;
+                }
+
+                this._gcs.LoadCredential(filePath, false);
+                if (this._app.IsIdle) {
+                    await this.LoadBuckets();
+                }
+            }
+            catch (Exception ex) {
+                this._logger.WriteError(ex);
+                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async void BtnConnect_Click(object sender, EventArgs e) {
+            try {
+                string filePath = Path.Combine(this._app.AppLocation, "credentials.txt");
+                if (!File.Exists(filePath)) {
+                    filePath = Path.Combine(this._app.AppLocation, "credentials.json");
+                    if (!File.Exists(filePath)) {
+                        this.BtnConnectWithCustomCredential_Click(sender, e);
+                        return;
+                    }
                 }
 
                 this._gcs.LoadCredential(filePath, filePath.ToLower().EndsWith(".txt"));
