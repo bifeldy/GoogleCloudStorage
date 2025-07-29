@@ -75,7 +75,7 @@ namespace GoogleCloudStorage.Components {
                     }
                 }
             }
-            catch (Exception ex) {
+            catch /* (Exception ex) */ {
                 // MessageBox.Show(ex.Message, "ProgressBar Paint", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
