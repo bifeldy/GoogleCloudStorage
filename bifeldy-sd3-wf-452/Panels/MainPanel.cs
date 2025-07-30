@@ -703,6 +703,7 @@ namespace GoogleCloudStorage.Panels {
 
         private async Task LoadBuckets() {
             this.SetIdleBusyStatus(false);
+
             try {
                 this.btnHome.Enabled = false;
                 this.btnRefresh.Enabled = false;
@@ -754,6 +755,7 @@ namespace GoogleCloudStorage.Panels {
 
         private async Task LoadObjects(string path) {
             this.SetIdleBusyStatus(false);
+
             try {
                 this.btnHome.Enabled = false;
                 this.btnRefresh.Enabled = false;
@@ -910,8 +912,10 @@ namespace GoogleCloudStorage.Panels {
 
         private async void BtnExportLaporan_Click(object sender, EventArgs e) {
             this.SetIdleBusyStatus(false);
+
             bool btnDownloadEnabledBefore = this.btnDownload.Enabled;
             bool btnDdlEnabledBefore = this.btnDdl.Enabled;
+
             try {
                 string path = this.txtDirPath.Text;
                 if (!string.IsNullOrEmpty(path)) {
@@ -1026,6 +1030,7 @@ namespace GoogleCloudStorage.Panels {
 
         private async void BtnDdl_Click(object sender, EventArgs e) {
             this.SetIdleBusyStatus(false);
+
             try {
                 dynamic item = this.lvRemote.SelectedItems[0].Tag;
                 if (item is GcsObject || item.Kind == "storage#object") {
@@ -1053,7 +1058,17 @@ namespace GoogleCloudStorage.Panels {
 
         private async void BtnUpload_Click(object sender, EventArgs e) {
             this.SetIdleBusyStatus(false);
+
             try {
+                this.btnConnect.Enabled = false;
+                this.btnHome.Enabled = false;
+                this.btnRefresh.Enabled = false;
+                this.txtFilter.ReadOnly = true;
+                this.btnUpload.Enabled = false;
+                this.btnExportLaporan.Enabled = false;
+                this.btnDownload.Enabled = false;
+                this.btnDdl.Enabled = false;
+
                 string file_ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
 
                 string selectedLocalFilePath = null;
@@ -1175,6 +1190,16 @@ namespace GoogleCloudStorage.Panels {
                 this._logger.WriteError(ex);
                 _ = MessageBox.Show(ex.Message, "Upload Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally {
+                this.btnConnect.Enabled = true;
+                this.btnHome.Enabled = true;
+                this.btnRefresh.Enabled = true;
+                this.txtFilter.ReadOnly = false;
+                this.btnUpload.Enabled = true;
+                this.btnExportLaporan.Enabled = true;
+                this.btnDownload.Enabled = true;
+                this.btnDdl.Enabled = true;
+            }
 
             this.SetIdleBusyStatus(true);
         }
@@ -1290,21 +1315,23 @@ namespace GoogleCloudStorage.Panels {
 
             string errPgp = string.Empty;
 
-            try {
-                string publicKeyFilePath = Path.Combine(this._app.AppLocation, "publicKey.asc");
-                if (!File.Exists(publicKeyFilePath)) {
-                    errPgp = "Public Key verifikator tidak tersedia";
+            await Task.Run(async () => {
+                try {
+                    string publicKeyFilePath = Path.Combine(this._app.AppLocation, "publicKey.asc");
+                    if (!File.Exists(publicKeyFilePath)) {
+                        errPgp = "Public Key verifikator tidak tersedia";
+                    }
+                    else if (!this._pgpRsa.IsValidPublicKeyFile(publicKeyFilePath)) {
+                        errPgp = "Public Key verifikator tidak valid";
+                    }
+                    else if (!await this._pgpRsa.VerifyFileDetachedWithPublicKeyFile(realFilePath, publicKeyFilePath, sigFilePath)) {
+                        errPgp = "File rusak / corrupt / signature tidak sesuai";
+                    }
                 }
-                else if (!this._pgpRsa.IsValidPublicKeyFile(publicKeyFilePath)) {
-                    errPgp = "Public Key verifikator tidak valid";
+                catch {
+                    errPgp = "File sig :: rusak / tidak cocok dengan Public Key, harap hubungi DBA";
                 }
-                else if (!this._pgpRsa.VerifyFileDetachedWithPublicKeyFile(realFilePath, publicKeyFilePath, sigFilePath)) {
-                    errPgp = "File rusak / corrupt / signature tidak sesuai";
-                }
-            }
-            catch {
-                errPgp = "File sig :: rusak / tidak cocok dengan Public Key, harap hubungi DBA";
-            }
+            });
 
             if (!string.IsNullOrEmpty(errPgp)) {
                 throw new Exception(errPgp);
@@ -1364,14 +1391,9 @@ namespace GoogleCloudStorage.Panels {
 
                 string targetFolderId = googleUrl.Split('/').First();
 
-                // Paksa Ganti Thread -- Context Switching ~
-                await Task.Yield();
-
                 await Task.Run(async () => {
                     try {
-                        await Task.Yield();
-
-                        string file_md5 = this._chiper.CalculateMD5File(fileInfo.FullName);
+                        string file_md5 = await this._chiper.CalculateMD5File(fileInfo.FullName, this.LogReporter);
                         CGcsUploadProgress uploaded = null;
 
                         using (Stream stream = File.OpenRead(fileLocal)) {
@@ -1551,13 +1573,14 @@ namespace GoogleCloudStorage.Panels {
 
             else if (fileUploadDownload == "<<<===") {
 
-                // TODO ::
+                // TODO :: Migrasi Dari Tombol Download Biar Masuk Antrian (?)
 
             }
         }
 
         private void BtnDownload_Click(object sender, EventArgs e) {
             this.SetIdleBusyStatus(false);
+
             try {
                 dynamic item = this.lvRemote.SelectedItems[0].Tag;
                 if (item is GcsObject || item.Kind == "storage#object") {
