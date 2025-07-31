@@ -560,7 +560,7 @@ namespace GoogleCloudStorage.Panels {
             this.reConnectMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.btnConnectWithCustomCredential});
             this.reConnectMenu.Name = "reConnectMenu";
-            this.reConnectMenu.Size = new System.Drawing.Size(247, 48);
+            this.reConnectMenu.Size = new System.Drawing.Size(247, 26);
             // 
             // btnConnectWithCustomCredential
             // 
