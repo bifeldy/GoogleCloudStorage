@@ -996,8 +996,8 @@ namespace GoogleCloudStorage.Panels {
                                     int index = fileName.IndexOf(fn1);
                                     string xxxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
                                     string dc_kode = xxxx_xxxxxx.Substring(0, 4).ToUpper();
-                                    newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{fileName}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
-                                    GcsObject f2 = file2.Find(f => f.Name.EndsWith(xxxx_xxxxxx));
+                                    newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{f1.Name}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
+                                    GcsObject f2 = file2.Find(f => f.Name.ToLower().EndsWith(xxxx_xxxxxx));
                                     newLine += (f2 is null) ? "||" : $"{f2.Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
                                     writer.WriteLine(newLine);
                                 }
