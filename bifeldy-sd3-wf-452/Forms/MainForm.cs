@@ -91,6 +91,7 @@ namespace GoogleCloudStorage.Forms {
                     this.SysTray_MenuExit(sender, EventArgs.Empty);
                 }
                 else {
+                    _ = MessageBox.Show("Untuk keluar silahkan klik kanan pada icon di kanan bawah SYSTEM TRAY, jangan lupa pastikan tab SEDANG BERJALAN sudah kosong", "Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     this.lastFormWindowState = this.WindowState;
                     this.sysTrayNotifyIcon.BalloonTipIcon = ToolTipIcon.Info;
                     this.sysTrayNotifyIcon.BalloonTipTitle = "Aplikasi Berjalan Di Belakang Layar";
@@ -98,8 +99,8 @@ namespace GoogleCloudStorage.Forms {
                     this.sysTrayNotifyIcon.BalloonTipClicked += this.SysTray_DoubleClick;
                     this.sysTrayNotifyIcon.ShowBalloonTip(500);
                     this.WindowState = FormWindowState.Minimized;
-                    this.ShowInTaskbar = false;
-                    this.Hide();
+                    // this.ShowInTaskbar = false;
+                    // this.Hide();
                     e.Cancel = true;
                 }
             }

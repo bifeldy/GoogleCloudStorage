@@ -61,7 +61,7 @@ namespace GoogleCloudStorage.Panels {
 
         private ListViewColumnSorter lvColumnSorter;
 
-        private readonly List<string> ctlExclBusy = new List<string> {
+        private readonly List<string> ctlExclBusy = new List<string>() {
             "btnUpload",
             "btnExportLaporan",
             "btnDownload",
@@ -425,7 +425,17 @@ namespace GoogleCloudStorage.Panels {
 
                 string errorMessage = string.Empty;
                 if (progress.Exception != null) {
-                    errorMessage = $" :: {progress.Exception.Message}";
+                    // -- Jagaan ReUpload Yang Sudah Berhasil -- Cuma Boleh 1x Upload Tanpa Bisa Delete
+                    string em = progress.Exception.Message;
+
+                    if (!string.IsNullOrEmpty(em)) {
+                        if (em.ToUpper().Contains("DOES NOT HAVE STORAGE.OBJECTS.DELETE ACCESS")) {
+                            em = $"Sebelumnya Sudah Berhasil Di Upload{Environment.NewLine}Silahkan Gunakan Kotak Pencarian (Lalu Tekan Enter) Untuk Mengecek Data{Environment.NewLine}{Environment.NewLine}{progress.Exception.Message}";
+                        }
+
+                        errorMessage = $" :: {em}";
+                    }
+
                     this._logger.WriteError(progress.Exception);
                 }
 
@@ -530,12 +540,15 @@ namespace GoogleCloudStorage.Panels {
 
         private async Task<bool> CheckIsAdmin() {
             try {
-                string isAdm = await this._db.SQLite_ExecScalar<string>(@"
-                    SELECT isadm FROM users
-                    WHERE uname = :uname
-                ", new List<CDbQueryParamBind> {
-                    new CDbQueryParamBind { NAME = "uname", VALUE = this._db.LoggedInUsername }
-                });
+                string isAdm = await this._db.SQLite_ExecScalar<string>(
+                    @"
+                        SELECT isadm FROM users
+                        WHERE uname = :uname
+                    ",
+                    new List<CDbQueryParamBind>() {
+                        new CDbQueryParamBind() { NAME = "uname", VALUE = this._db.LoggedInUsername }
+                    }
+                );
 
                 bool _isAdm = isAdm.ToUpper() == "Y";
                 if (_isAdm) {
@@ -570,15 +583,18 @@ namespace GoogleCloudStorage.Panels {
                 string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
                 string file_ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
 
-                using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(@"
-                    SELECT year, week, dc_kode, file_1_name, file_1_date, file_2_name, file_2_date
-                    FROM upload_log
-                    WHERE year = :year AND week = :week AND month = :month
-                ", new List<CDbQueryParamBind> {
-                    new CDbQueryParamBind { NAME = "year", VALUE = year },
-                    new CDbQueryParamBind { NAME = "week", VALUE = week },
-                    new CDbQueryParamBind { NAME = "month", VALUE = month }
-                })) {
+                using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(
+                    @"
+                        SELECT year, week, dc_kode, file_1_name, file_1_date, file_2_name, file_2_date
+                        FROM upload_log
+                        WHERE year = :year AND week = :week AND month = :month
+                    ",
+                    new List<CDbQueryParamBind>() {
+                        new CDbQueryParamBind() { NAME = "year", VALUE = year },
+                        new CDbQueryParamBind() { NAME = "week", VALUE = week },
+                        new CDbQueryParamBind() { NAME = "month", VALUE = month }
+                    }
+                )) {
                     while (reader.Read()) {
                         string uploadInfo = Environment.NewLine;
 
@@ -1123,16 +1139,19 @@ namespace GoogleCloudStorage.Panels {
 
                 int rowCount = 0;
                 using (
-                    DbDataReader reader = await this._db.SQLite_ExecReaderAsync(@"
-                        SELECT file_1_name, file_1_date, file_2_name, file_2_date
-                        FROM upload_log
-                        WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode
-                    ", new List<CDbQueryParamBind> {
-                        new CDbQueryParamBind { NAME = "year", VALUE = year },
-                        new CDbQueryParamBind { NAME = "week", VALUE = week },
-                        new CDbQueryParamBind { NAME = "month", VALUE = month },
-                        new CDbQueryParamBind { NAME = "dc_kode", VALUE = rgx.Groups[2].Value }
-                    })
+                    DbDataReader reader = await this._db.SQLite_ExecReaderAsync(
+                        @"
+                            SELECT file_1_name, file_1_date, file_2_name, file_2_date
+                            FROM upload_log
+                            WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode
+                        ",
+                        new List<CDbQueryParamBind>() {
+                            new CDbQueryParamBind() { NAME = "year", VALUE = year },
+                            new CDbQueryParamBind() { NAME = "week", VALUE = week },
+                            new CDbQueryParamBind() { NAME = "month", VALUE = month },
+                            new CDbQueryParamBind() { NAME = "dc_kode", VALUE = rgx.Groups[2].Value }
+                        }
+                    )
                 ) {
                     while (reader.Read()) {
                         rowCount++;
@@ -1158,15 +1177,18 @@ namespace GoogleCloudStorage.Panels {
 
                 this._db.CloseAllConnection();
                 if (rowCount == 0) {
-                    _ = await this._db.SQLite_ExecQuery(@"
-                        INSERT INTO upload_log(year, week, month, dc_kode)
-                        VALUES(:year, :week, :month, :dc_kode)
-                    ", new List<CDbQueryParamBind> {
-                        new CDbQueryParamBind { NAME = "year", VALUE = year },
-                        new CDbQueryParamBind { NAME = "week", VALUE = week },
-                        new CDbQueryParamBind { NAME = "month", VALUE = month },
-                        new CDbQueryParamBind { NAME = "dc_kode", VALUE = rgx.Groups[2].Value }
-                    });
+                    _ = await this._db.SQLite_ExecQuery(
+                        @"
+                            INSERT INTO upload_log(year, week, month, dc_kode)
+                            VALUES(:year, :week, :month, :dc_kode)
+                        ",
+                        new List<CDbQueryParamBind>() {
+                            new CDbQueryParamBind() { NAME = "year", VALUE = year },
+                            new CDbQueryParamBind() { NAME = "week", VALUE = week },
+                            new CDbQueryParamBind() { NAME = "month", VALUE = month },
+                            new CDbQueryParamBind() { NAME = "dc_kode", VALUE = rgx.Groups[2].Value }
+                        }
+                    );
                 }
 
                 if (!string.IsNullOrEmpty(file1name) && !string.IsNullOrEmpty(file2name)) {
@@ -1337,17 +1359,17 @@ namespace GoogleCloudStorage.Panels {
                 throw new Exception(errPgp);
             }
 
-            DialogResult dialogResult = DialogResult.Yes;
+            DialogResult dialogResult = DialogResult.No;
             if (!this.cbReplaceIfExist.Checked) {
                 foreach (GcsObject obj in this.allObjects) {
                     if (obj.Name.ToLower().Contains(fileInfo.Name.ToLower())) {
-                        dialogResult = MessageBox.Show($"Tetap lanjut upload '{fileInfo.Name}' ?", "File Already Exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        dialogResult = MessageBox.Show($"File sudah pernah terupload, SKIP dan lewati '{fileInfo.Name}' ? Jika tidak, akan mencoba upload ulang (kemungkinan gagal). Silahkan gunakan kotak filter pencarian untuk mengecek apakah data sudah benar ada", "File Already Exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                         break;
                     }
                 }
             }
 
-            if (dialogResult == DialogResult.Yes) {
+            if (dialogResult == DialogResult.No) {
                 int idx = this.dgQueue.Rows.Add(realFilePath, "===>>>", $"Google://{targetFolderId}/{fileInfo.Name}");
                 DataGridViewRow dgvrQueue = this.dgQueue.Rows[idx];
 
@@ -1400,13 +1422,16 @@ namespace GoogleCloudStorage.Panels {
                             GcsMediaUpload mediaUpload = this._gcs.GenerateUploadMedia(fileInfo, targetFolderId, stream);
                             Uri uploadSession = null;
 
-                            using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(@"
-                                SELECT file_md5, file_session, file_date
-                                FROM upload_chunk
-                                WHERE file_md5 = :file_md5
-                            ", new List<CDbQueryParamBind> {
-                                new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 }
-                            })) {
+                            using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(
+                                @"
+                                    SELECT file_md5, file_session, file_date
+                                    FROM upload_chunk
+                                    WHERE file_md5 = :file_md5
+                                ",
+                                new List<CDbQueryParamBind>() {
+                                    new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 }
+                                })
+                            ) {
                                 while (reader.Read()) {
                                     if (!reader.IsDBNull(2)) {
                                         var file_date = new DateTime(long.Parse(reader.GetInt64(2).ToString()));
@@ -1424,21 +1449,27 @@ namespace GoogleCloudStorage.Panels {
                             this._db.CloseAllConnection();
 
                             if (uploadSession == null) {
-                                _ = await this._db.SQLite_ExecQuery(@"
-                                    DELETE FROM upload_chunk
-                                    WHERE file_md5 = :file_md5
-                                ", new List<CDbQueryParamBind> {
-                                    new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 }
-                                });
+                                _ = await this._db.SQLite_ExecQuery(
+                                    @"
+                                        DELETE FROM upload_chunk
+                                        WHERE file_md5 = :file_md5
+                                    ",
+                                    new List<CDbQueryParamBind>() {
+                                        new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 }
+                                    }
+                                );
                                 uploadSession = await this._gcs.CreateUploadUri(mediaUpload);
-                                _ = await this._db.SQLite_ExecQuery(@"
-                                    INSERT INTO upload_chunk(file_md5, file_session, file_date)
-                                    VALUES(:file_md5, :file_session, :file_date)
-                                ", new List<CDbQueryParamBind> {
-                                    new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 },
-                                    new CDbQueryParamBind { NAME = "file_session", VALUE = uploadSession.ToString() },
-                                    new CDbQueryParamBind { NAME = "file_date", VALUE = DateTime.Now.Ticks }
-                                });
+                                _ = await this._db.SQLite_ExecQuery(
+                                    @"
+                                        INSERT INTO upload_chunk(file_md5, file_session, file_date)
+                                        VALUES(:file_md5, :file_session, :file_date)
+                                    ",
+                                    new List<CDbQueryParamBind>() {
+                                        new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 },
+                                        new CDbQueryParamBind() { NAME = "file_session", VALUE = uploadSession.ToString() },
+                                        new CDbQueryParamBind() { NAME = "file_date", VALUE = DateTime.Now.Ticks }
+                                    }
+                                );
                             }
 
                             CGcsUploadProgress progressOld = null;
@@ -1473,13 +1504,13 @@ namespace GoogleCloudStorage.Panels {
 
                                 if (rgx.Groups[1].Value.ToLower() == "metadata") {
                                     sql += " file_1_name = :file_1_name, file_1_date = :file_1_date";
-                                    param.Add(new CDbQueryParamBind { NAME = "file_1_name", VALUE = fileInfo.Name.ToLower() });
-                                    param.Add(new CDbQueryParamBind { NAME = "file_1_date", VALUE = DateTime.Now.Ticks });
+                                    param.Add(new CDbQueryParamBind() { NAME = "file_1_name", VALUE = fileInfo.Name.ToLower() });
+                                    param.Add(new CDbQueryParamBind() { NAME = "file_1_date", VALUE = DateTime.Now.Ticks });
                                 }
                                 else {
                                     sql += " file_2_name = :file_2_name, file_2_date = :file_2_date";
-                                    param.Add(new CDbQueryParamBind { NAME = "file_2_name", VALUE = fileInfo.Name.ToLower() });
-                                    param.Add(new CDbQueryParamBind { NAME = "file_2_date", VALUE = DateTime.Now.Ticks });
+                                    param.Add(new CDbQueryParamBind() { NAME = "file_2_name", VALUE = fileInfo.Name.ToLower() });
+                                    param.Add(new CDbQueryParamBind() { NAME = "file_2_date", VALUE = DateTime.Now.Ticks });
                                 }
 
                                 sql += " WHERE year = :year AND week = :week AND month = :month AND dc_kode = :dc_kode";
@@ -1489,18 +1520,21 @@ namespace GoogleCloudStorage.Panels {
                                     fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
                                 }
 
-                                param.Add(new CDbQueryParamBind { NAME = "year", VALUE = fileDate.Year });
-                                param.Add(new CDbQueryParamBind { NAME = "week", VALUE = fileDate.GetWeekOfYear() });
-                                param.Add(new CDbQueryParamBind { NAME = "month", VALUE = fileDate.Month });
-                                param.Add(new CDbQueryParamBind { NAME = "dc_kode", VALUE = rgx.Groups[2].Value });
+                                param.Add(new CDbQueryParamBind() { NAME = "year", VALUE = fileDate.Year });
+                                param.Add(new CDbQueryParamBind() { NAME = "week", VALUE = fileDate.GetWeekOfYear() });
+                                param.Add(new CDbQueryParamBind() { NAME = "month", VALUE = fileDate.Month });
+                                param.Add(new CDbQueryParamBind() { NAME = "dc_kode", VALUE = rgx.Groups[2].Value });
                                 _ = await this._db.SQLite_ExecQuery(sql, param);
 
-                                _ = await this._db.SQLite_ExecQuery(@"
-                                    DELETE FROM upload_chunk
-                                    WHERE file_md5 = :file_md5
-                                ", new List<CDbQueryParamBind> {
-                                    new CDbQueryParamBind { NAME = "file_md5", VALUE = file_md5 }
-                                });
+                                _ = await this._db.SQLite_ExecQuery(
+                                    @"
+                                        DELETE FROM upload_chunk
+                                        WHERE file_md5 = :file_md5
+                                    ",
+                                    new List<CDbQueryParamBind>() {
+                                        new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 }
+                                    }
+                                );
                             }
                             catch (Exception err) {
                                 this._logger.WriteError(err);
@@ -1508,15 +1542,12 @@ namespace GoogleCloudStorage.Panels {
                             }
 
                             try {
-                                DialogResult dialogResult =
-                                    this.cbDeleteOnComplete.Checked
-                                        ? DialogResult.Yes
-                                        : MessageBox.Show(
-                                            $"Delete File '{fileInfo.FullName}'",
-                                            "Upload Finished",
-                                            MessageBoxButtons.YesNo,
-                                            MessageBoxIcon.Question
-                                        );
+                                DialogResult dialogResult = DialogResult.Yes;
+
+                                if (!this.cbDeleteOnComplete.Checked) {
+                                    dialogResult = MessageBox.Show($"Delete File '{fileInfo.FullName}'", "Upload Finished", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                                }
+
                                 if (dialogResult == DialogResult.Yes) {
                                     if (fileInfo.Exists) {
                                         fileInfo.Delete();
