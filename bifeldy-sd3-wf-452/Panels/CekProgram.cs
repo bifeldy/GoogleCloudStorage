@@ -72,7 +72,7 @@ namespace GoogleCloudStorage.Panels {
                     }
                     catch (Exception ex) {
                         DialogResult res = MessageBox.Show(
-                            $"{ex.Message} :: Tetap Lanjutkan ?",
+                            "Tidak dapat terhubung dengan jaringan kantor. Program tetap dapat digunakan jika sudah pernah digunakan :: Tetap Lanjutkan ?",
                             "Program Checker",
                             MessageBoxButtons.YesNo,
                             MessageBoxIcon.Error
