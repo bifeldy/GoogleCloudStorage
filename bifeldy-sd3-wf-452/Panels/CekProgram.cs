@@ -70,7 +70,7 @@ namespace GoogleCloudStorage.Panels {
                     try {
                         await this._updater.UpdateSqliteDatabase();
                     }
-                    catch (Exception ex) {
+                    catch {
                         DialogResult res = MessageBox.Show(
                             "Tidak dapat terhubung dengan jaringan kantor. Program tetap dapat digunakan jika sudah pernah digunakan :: Tetap Lanjutkan ?",
                             "Program Checker",
