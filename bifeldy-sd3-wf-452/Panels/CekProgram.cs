@@ -68,7 +68,7 @@ namespace GoogleCloudStorage.Panels {
             if (this._db.LocalDbOnly) {
                 await Task.Run(async () => {
                     try {
-                        await this._updater.UpdateSqliteDatabase();
+                        await this._updater.UpdateSqliteDbFromFtp();
                     }
                     catch {
                         DialogResult res = MessageBox.Show(

@@ -48,6 +48,7 @@ namespace GoogleCloudStorage.Panels {
         private readonly IBerkas _berkas;
         private readonly ICsv _csv;
         private readonly IPgpRsa _pgpRsa;
+        private readonly IUpdater _updater;
 
         private CMainForm mainForm;
 
@@ -93,7 +94,8 @@ namespace GoogleCloudStorage.Panels {
             IGoogleCloudStorage gcs,
             IBerkas berkas,
             ICsv csv,
-            IPgpRsa pgpRsa
+            IPgpRsa pgpRsa,
+            IUpdater updater
         ) {
             this._app = app;
             this._logger = logger;
@@ -106,6 +108,7 @@ namespace GoogleCloudStorage.Panels {
             this._berkas = berkas;
             this._csv = csv;
             this._pgpRsa = pgpRsa;
+            this._updater = updater;
 
             this.InitializeComponent();
             this.OnInit();
@@ -449,7 +452,7 @@ namespace GoogleCloudStorage.Panels {
 
                 if (this.dgOnProgress.Rows.Count <= 0 && this._app.IsIdle) {
                     string path = this.txtDirPath.Text;
-                    await this.LoadObjects(path);
+                    _ = await this.LoadObjects(path);
                 }
 
                 this.ClearDataGridSelection();
@@ -527,7 +530,7 @@ namespace GoogleCloudStorage.Panels {
 
                 if (this.dgOnProgress.Rows.Count <= 0 && this._app.IsIdle) {
                     string path = this.txtDirPath.Text;
-                    await this.LoadObjects(path);
+                    _ = await this.LoadObjects(path);
                 }
 
                 this.ClearDataGridSelection();
@@ -769,7 +772,9 @@ namespace GoogleCloudStorage.Panels {
             this.SetIdleBusyStatus(true);
         }
 
-        private async Task LoadObjects(string path) {
+        private async Task<bool> LoadObjects(string path) {
+            bool result = false;
+
             this.SetIdleBusyStatus(false);
 
             try {
@@ -805,6 +810,7 @@ namespace GoogleCloudStorage.Panels {
                 this.lvRemote.Items.Clear();
                 this.lvRemote.Items.AddRange(lvis);
                 this.UpdateLastActivity();
+                result = true;
             }
             catch (TaskCanceledException ex) {
                 this._logger.WriteError(ex);
@@ -824,6 +830,8 @@ namespace GoogleCloudStorage.Panels {
             }
 
             this.SetIdleBusyStatus(true);
+
+            return result;
         }
 
         private async void BtnConnectWithCustomCredential_Click(object sender, EventArgs e) {
@@ -895,7 +903,7 @@ namespace GoogleCloudStorage.Panels {
             if (item is GcsBucket || item.Kind == "storage#bucket") {
                 // Name = Id Bucket Sama Aja Kayaknya (?)
                 if (this._app.IsIdle) {
-                    await LoadObjects(item.Name);
+                    _ = await this.LoadObjects(item.Name);
                 }
             }
         }
@@ -913,7 +921,7 @@ namespace GoogleCloudStorage.Panels {
                     await this.LoadBuckets();
                 }
                 else {
-                    await this.LoadObjects(path);
+                    _ = await this.LoadObjects(path);
                 }
             }
         }
@@ -927,121 +935,352 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private async void BtnExportLaporan_Click(object sender, EventArgs e) {
-            this.SetIdleBusyStatus(false);
+            string path = this.txtDirPath.Text;
+            if (!string.IsNullOrEmpty(path)) {
+                bool result = false;
 
-            bool btnDownloadEnabledBefore = this.btnDownload.Enabled;
-            bool btnDdlEnabledBefore = this.btnDdl.Enabled;
+                DialogResult dr = MessageBox.Show("Ingin Refresh Data Terlebih Dahulu ?", "Export Laporan", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                if (dr == DialogResult.Yes) {
+                    result = await this.LoadObjects(path);
+                }
+                else if (dr == DialogResult.No) {
+                    result = true;
+                }
 
-            try {
-                string path = this.txtDirPath.Text;
-                if (!string.IsNullOrEmpty(path)) {
-                    this.btnHome.Enabled = false;
-                    this.btnRefresh.Enabled = false;
-                    this.txtFilter.ReadOnly = true;
-                    this.btnUpload.Enabled = false;
-                    this.btnExportLaporan.Enabled = false;
-                    this.btnDownload.Enabled = false;
-                    this.btnDdl.Enabled = false;
+                if (result) {
+                    this.SetIdleBusyStatus(false);
 
-                    await Task.Run(async () => {
-                        List<GcsObject> objects = await this._gcs.ListAllObjects(path);
+                    bool btnDownloadEnabledBefore = this.btnDownload.Enabled;
+                    bool btnDdlEnabledBefore = this.btnDdl.Enabled;
 
-                        string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
+                    try {
+                        this.btnHome.Enabled = false;
+                        this.btnRefresh.Enabled = false;
+                        this.txtFilter.ReadOnly = true;
+                        this.btnUpload.Enabled = false;
+                        this.btnExportLaporan.Enabled = false;
+                        this.btnDownload.Enabled = false;
+                        this.btnDdl.Enabled = false;
 
-                        var file1 = new List<GcsObject>();
-                        var file2 = new List<GcsObject>();
-                        foreach (GcsObject obj in objects) {
-                            string _fp = fp.Replace(".sig", string.Empty);
-                            Match rgx = Regex.Match(obj.Name.ToLower(), _fp);
-                            if (!rgx.Success) {
-                                _fp = _fp.Replace(".7z", string.Empty);
-                                rgx = Regex.Match(obj.Name.ToLower(), _fp);
-                            }
+                        this._logger.SetLogReporter(null);
 
-                            if (rgx.Success) {
-                                if (rgx.Groups[1].Value.ToLower() == "metadata") {
-                                    file1.Add(obj);
-                                }
-                                else {
-                                    file2.Add(obj);
-                                }
-                            }
-                        }
+                        await Task.Run(async () => {
+                            string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
 
-                        string[] csvColumn = new string[] {
-                            "KODE_DC",
-                            "TAHUN",
-                            "BULAN",
-                            "MINGGU",
-                            "FILE_1_NAME",
-                            "FILE_1_SIZE_BYTES",
-                            "FILE_1_DATE_TIME",
-                            "FILE_2_NAME",
-                            "FILE_2_SIZE_BYTES",
-                            "FILE_2_DATE_TIME"
-                        };
-
-                        string exportPath = Path.Combine(this._csv.CsvFolderPath, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv");
-                        using (var writer = new StreamWriter(exportPath)) {
-                            writer.WriteLine(string.Join("|", csvColumn).ToUpper());
-                            foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
-                                string fileName = f1.Name.ToLower().Replace("\\", "/").Split('/').Last();
+                            var file1 = new List<GcsObject>();
+                            var file2 = new List<GcsObject>();
+                            foreach (GcsObject obj in this.allObjects) {
                                 string _fp = fp.Replace(".sig", string.Empty);
-
-                                Match rgx = Regex.Match(fileName.ToLower(), _fp);
+                                Match rgx = Regex.Match(obj.Name.ToLower(), _fp);
                                 if (!rgx.Success) {
                                     _fp = _fp.Replace(".7z", string.Empty);
-                                    rgx = Regex.Match(fileName.ToLower(), _fp);
+                                    rgx = Regex.Match(obj.Name.ToLower(), _fp);
                                 }
 
-                                if (!rgx.Success) {
-                                    continue;
-                                }
-
-                                DateTime fileDate = DateTime.MinValue;
-                                if (rgx.Groups[2].Value.ToLower() == "xgps") {
-                                    fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
-                                }
-                                else {
-                                    fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
-                                }
-
-                                string fn1 = "idm_metadata_".ToLower();
-                                string newLine = string.Empty;
-                                if (fileName.StartsWith(fn1)) {
-                                    int index = fileName.IndexOf(fn1);
-                                    string xxxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
-                                    string dc_kode = xxxx_xxxxxx.Substring(0, 4).ToUpper();
-                                    newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{f1.Name}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
-                                    GcsObject f2 = file2.Find(f => f.Name.ToLower().EndsWith(xxxx_xxxxxx));
-                                    newLine += (f2 is null) ? "||" : $"{f2.Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
-                                    writer.WriteLine(newLine);
+                                if (rgx.Success) {
+                                    if (rgx.Groups[1].Value.ToLower() == "metadata") {
+                                        file1.Add(obj);
+                                    }
+                                    else {
+                                        file2.Add(obj);
+                                    }
                                 }
                             }
-                        }
 
-                        _ = Process.Start(new ProcessStartInfo {
-                            Arguments = this._csv.CsvFolderPath,
-                            FileName = "explorer.exe"
+                            _ = await this._db.SQLite_ExecQuery($@"DROP TABLE IF EXISTS dc_tabel_dc_t");
+
+                            _ = await this._db.SQLite_ExecQuery($@"
+                                CREATE TABLE IF NOT EXISTS dc_tabel_dc_t (
+
+                                    tbl_dc_kode             TEXT,
+                                    tbl_dc_nama             TEXT,
+                                    tbl_jenis_dc            TEXT,
+                                    tbl_tgl_buka            TEXT,
+                                    tbl_dc_induk            TEXT,
+                                    tbl_cabang_kode         TEXT,
+                                    tbl_cabang_nama         TEXT,
+
+                                    PRIMARY KEY (tbl_dc_kode)
+                                )
+                            ");
+
+                            await this._updater.UpdateSqliteDbFromFtp("dc_tabel_dc_t.json");
+
+                            try {
+                                _ = await this._db.SQLite_ExecQuery("DROP TABLE IF EXISTS report_raw");
+
+                                _ = await this._db.SQLite_ExecQuery($@"
+                                    CREATE TABLE IF NOT EXISTS report_raw (
+
+                                        kode_dc             TEXT,
+                                        tahun               INTEGER,
+                                        bulan               INTEGER,
+                                        minggu              INTEGER,
+                                        file_1_name         TEXT,
+                                        file_1_size_bytes   INTEGER,
+                                        file_1_date_time    INTEGER,
+                                        file_2_name         TEXT,
+                                        file_2_size_bytes   INTEGER,
+                                        file_2_date_time    INTEGER,
+
+                                        PRIMARY KEY (kode_dc, tahun, bulan, minggu, file_1_name)
+                                    )
+                                ");
+
+                                await this._db.MarkBeforeCommitRollback();
+
+                                foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
+                                    string fileName = f1.Name.ToLower().Replace("\\", "/").Split('/').Last();
+                                    string _fp = fp.Replace(".sig", string.Empty);
+
+                                    Match rgx = Regex.Match(fileName.ToLower(), _fp);
+                                    if (!rgx.Success) {
+                                        _fp = _fp.Replace(".7z", string.Empty);
+                                        rgx = Regex.Match(fileName.ToLower(), _fp);
+                                    }
+
+                                    if (!rgx.Success) {
+                                        continue;
+                                    }
+
+                                    DateTime fileDate = DateTime.MinValue;
+                                    if (rgx.Groups[2].Value.ToLower() == "xgps") {
+                                        fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
+                                    }
+                                    else {
+                                        fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
+                                    }
+
+                                    string fn1 = "idm_metadata_".ToLower();
+                                    string newLine = string.Empty;
+                                    if (fileName.StartsWith(fn1)) {
+                                        int index = fileName.IndexOf(fn1);
+
+                                        string xxxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
+                                        string dc_kode = xxxx_xxxxxx.Substring(0, 4).ToUpper();
+
+                                        newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{f1.Name}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
+
+                                        GcsObject f2 = file2.Find(f => f.Name.ToLower().EndsWith(xxxx_xxxxxx));
+
+                                        newLine += (f2 is null) ? "||" : $"{f2.Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
+
+                                        _ = await this._db.SQLite_ExecQuery(
+                                            @"
+                                                INSERT INTO report_raw(kode_dc, tahun, bulan, minggu, file_1_name, file_1_size_bytes, file_1_date_time, file_2_name, file_2_size_bytes, file_2_date_time)
+                                                VALUES(:kode_dc, :tahun, :bulan, :minggu, :file_1_name, :file_1_size_bytes, :file_1_date_time, :file_2_name, :file_2_size_bytes, :file_2_date_time)
+                                            ",
+                                            new List<CDbQueryParamBind>() {
+                                                new CDbQueryParamBind() { NAME = "kode_dc", VALUE = dc_kode },
+                                                new CDbQueryParamBind() { NAME = "tahun", VALUE = fileDate.Year },
+                                                new CDbQueryParamBind() { NAME = "bulan", VALUE = fileDate.Month },
+                                                new CDbQueryParamBind() { NAME = "minggu", VALUE = fileDate.GetWeekOfMonth() },
+                                                new CDbQueryParamBind() { NAME = "file_1_name", VALUE = f1.Name },
+                                                new CDbQueryParamBind() { NAME = "file_1_size_bytes", VALUE = f1.Size },
+                                                new CDbQueryParamBind() { NAME = "file_1_date_time", VALUE = f1.Updated?.Ticks },
+                                                new CDbQueryParamBind() { NAME = "file_2_name", VALUE = f2?.Name },
+                                                new CDbQueryParamBind() { NAME = "file_2_size_bytes", VALUE = f2?.Size },
+                                                new CDbQueryParamBind() { NAME = "file_2_date_time", VALUE = f2?.Updated?.Ticks }
+                                            }
+                                        );
+                                    }
+                                }
+
+                                this._db.MarkSuccessCommitAndClose();
+                            }
+                            catch {
+                                _ = this._db.MarkFailedRollbackAndClose();
+                                throw;
+                            }
+
+                            _ = await this._db.SQLite_ExecQuery($@"DROP VIEW IF EXISTS report_harian");
+
+                            _ = await this._db.SQLite_ExecQuery($@"
+                                CREATE VIEW IF NOT EXISTS report_harian AS
+                                WITH all_file AS (
+                                    SELECT
+                                        tahun,
+                                        bulan,
+                                        kode_dc,
+                                        'idm_tabel_' || kode_dc AS file_name,
+                                        file_1_date_time file_date_tick
+                                    FROM report_raw
+                                    WHERE file_1_date_time IS NOT NULL
+                                    UNION ALL
+                                    SELECT
+                                        tahun,
+                                        bulan,
+                                        kode_dc,
+                                        'idm_metadata_' || kode_dc AS file_name,
+                                        file_2_date_time file_date_tick
+                                    FROM report_raw
+                                    WHERE file_2_date_time IS NOT NULL
+                                ),
+                                all_file_with_numweek AS (
+                                    SELECT r.*,
+                                    CAST(STRFTIME('%d',DATETIME( (file_date_tick - 621355968000000000) / 10000000, 'unixepoch')) AS INT) AS day_num,
+                                    (
+                                        (
+                                            CAST(STRFTIME('%d', DATE(PRINTF('%04d', r.tahun) || '-' || PRINTF('%02d', r.bulan) || '-01', '+1 month', '-1 day')) AS INTEGER)
+                                            + CAST(STRFTIME('%w', DATE(PRINTF('%04d', r.tahun) || '-' || PRINTF('%02d', r.bulan) || '-01')) AS INTEGER) + 6
+                                        )
+                                        / 7
+                                    ) AS num_weeks
+                                    FROM all_file AS r
+                                ),
+                                report_harian AS (
+                                    SELECT
+                                        a.tahun,
+                                        a.bulan,
+                                        a.kode_dc,
+                                        b.tbl_dc_nama,
+                                        a.file_name,
+                                        MAX(CASE WHEN a.day_num = 1 THEN 'X' ELSE '' END) AS date_1,
+                                        MAX(CASE WHEN a.day_num = 2 THEN 'X' ELSE '' END) AS date_2,
+                                        MAX(CASE WHEN a.day_num = 3 THEN 'X' ELSE '' END) AS date_3,
+                                        MAX(CASE WHEN a.day_num = 4 THEN 'X' ELSE '' END) AS date_4,
+                                        MAX(CASE WHEN a.day_num = 5 THEN 'X' ELSE '' END) AS date_5,
+                                        MAX(CASE WHEN a.day_num = 6 THEN 'X' ELSE '' END) AS date_6,
+                                        MAX(CASE WHEN a.day_num = 7 THEN 'X' ELSE '' END) AS date_7,
+                                        MAX(CASE WHEN a.day_num = 8 THEN 'X' ELSE '' END) AS date_8,
+                                        MAX(CASE WHEN a.day_num = 9 THEN 'X' ELSE '' END) AS date_9,
+                                        MAX(CASE WHEN a.day_num = 10 THEN 'X' ELSE '' END) AS date_10,
+                                        MAX(CASE WHEN a.day_num = 11 THEN 'X' ELSE '' END) AS date_11,
+                                        MAX(CASE WHEN a.day_num = 12 THEN 'X' ELSE '' END) AS date_12,
+                                        MAX(CASE WHEN a.day_num = 13 THEN 'X' ELSE '' END) AS date_13,
+                                        MAX(CASE WHEN a.day_num = 14 THEN 'X' ELSE '' END) AS date_14,
+                                        MAX(CASE WHEN a.day_num = 15 THEN 'X' ELSE '' END) AS date_15,
+                                        MAX(CASE WHEN a.day_num = 16 THEN 'X' ELSE '' END) AS date_16,
+                                        MAX(CASE WHEN a.day_num = 17 THEN 'X' ELSE '' END) AS date_17,
+                                        MAX(CASE WHEN a.day_num = 18 THEN 'X' ELSE '' END) AS date_18,
+                                        MAX(CASE WHEN a.day_num = 19 THEN 'X' ELSE '' END) AS date_19,
+                                        MAX(CASE WHEN a.day_num = 20 THEN 'X' ELSE '' END) AS date_20,
+                                        MAX(CASE WHEN a.day_num = 21 THEN 'X' ELSE '' END) AS date_21,
+                                        MAX(CASE WHEN a.day_num = 22 THEN 'X' ELSE '' END) AS date_22,
+                                        MAX(CASE WHEN a.day_num = 23 THEN 'X' ELSE '' END) AS date_23,
+                                        MAX(CASE WHEN a.day_num = 24 THEN 'X' ELSE '' END) AS date_24,
+                                        MAX(CASE WHEN a.day_num = 25 THEN 'X' ELSE '' END) AS date_25,
+                                        MAX(CASE WHEN a.day_num = 26 THEN 'X' ELSE '' END) AS date_26,
+                                        MAX(CASE WHEN a.day_num = 27 THEN 'X' ELSE '' END) AS date_27,
+                                        MAX(CASE WHEN a.day_num = 28 THEN 'X' ELSE '' END) AS date_28,
+                                        MAX(CASE WHEN a.day_num = 29 THEN 'X' ELSE '' END) AS date_29,
+                                        MAX(CASE WHEN a.day_num = 30 THEN 'X' ELSE '' END) AS date_30,
+                                        MAX(CASE WHEN a.day_num = 31 THEN 'X' ELSE '' END) AS date_31,
+                                        COUNT(DISTINCT a.day_num) AS total_upload
+                                    FROM all_file_with_numweek AS a
+                                        LEFT JOIN dc_tabel_dc_t AS b ON (
+                                            a.kode_dc = b.tbl_dc_kode
+                                        )
+                                    GROUP BY a.tahun, a.bulan, a.kode_dc, a.file_name, a.num_weeks
+                                    ORDER BY a.tahun, a.bulan, a.kode_dc, a.file_name
+                                )
+                                SELECT
+                                    COALESCE(y.tbl_dc_induk, x.kode_dc) AS induk,
+                                    y.tbl_cabang_nama AS cabang,
+                                    x.*
+                                FROM report_harian AS x
+                                LEFT JOIN dc_tabel_dc_t AS y ON (
+                                    x.kode_dc = y.tbl_dc_kode
+                                )
+                            ");
+
+                            _ = await this._db.SQLite_ExecQuery($@"DROP VIEW IF EXISTS report_mingguan");
+
+                            _ = await this._db.SQLite_ExecQuery($@"
+                                CREATE VIEW IF NOT EXISTS report_mingguan AS
+                                WITH all_file AS (
+                                    SELECT
+                                        tahun,
+                                        bulan,
+                                        kode_dc,
+                                        minggu,
+                                        'idm_tabel_' || kode_dc AS file_name
+                                    FROM report_raw
+                                    WHERE file_1_date_time IS NOT NULL
+                                    UNION ALL
+                                    SELECT
+                                        tahun,
+                                        bulan,
+                                        kode_dc,
+                                        minggu,
+                                        'idm_metadata_' || kode_dc AS file_name
+                                    FROM report_raw
+                                    WHERE file_2_date_time IS NOT NULL
+                                ),
+                                all_file_with_numweek AS (
+                                    SELECT r.* ,
+                                    (
+                                        (
+                                            CAST(STRFTIME('%d', DATE(PRINTF('%04d', r.tahun) || '-' || PRINTF('%02d', r.bulan) || '-01', '+1 month', '-1 day')) AS INTEGER)
+                                            + CAST(STRFTIME('%w', DATE(PRINTF('%04d', r.tahun) || '-' || PRINTF('%02d', r.bulan) || '-01')) AS INTEGER) + 6
+                                        )
+                                        / 7
+                                    ) AS num_weeks
+                                    FROM all_file AS r
+                                ),
+                                report_mingguan AS (
+                                    SELECT
+                                        a.tahun,
+                                        a.bulan,
+                                        a.kode_dc,
+                                        b.tbl_dc_nama,
+                                        a.file_name,
+                                        MAX(CASE WHEN a.minggu = 1 THEN 'X' ELSE '' END) AS minggu_1,
+                                        MAX(CASE WHEN a.minggu = 2 THEN 'X' ELSE '' END) AS minggu_2,
+                                        MAX(CASE WHEN a.minggu = 3 THEN 'X' ELSE '' END) AS minggu_3,
+                                        MAX(CASE WHEN a.minggu = 4 THEN 'X' ELSE '' END) AS minggu_4,
+                                        MAX(CASE WHEN a.minggu = 5 THEN 'X' ELSE '' END) AS minggu_5,
+                                        MAX(CASE WHEN a.minggu = 6 THEN 'X' ELSE '' END) AS minggu_6,
+                                        COUNT(DISTINCT a.minggu) AS total_upload,
+                                        a.num_weeks AS total_minggu,
+                                        ROUND(COUNT(DISTINCT minggu) / (1.0 * num_weeks) * 100, 1) AS kelengkapan
+                                    FROM all_file_with_numweek a
+                                        LEFT JOIN dc_tabel_dc_t AS b ON (
+                                            a.kode_dc = b.tbl_dc_kode
+                                        )
+                                    GROUP BY tahun, bulan, kode_dc, num_weeks, file_name
+                                    ORDER BY tahun, bulan, kode_dc, file_name
+                                )
+                                SELECT
+                                    COALESCE(y.tbl_dc_induk, x.kode_dc) AS induk,
+                                    y.tbl_cabang_nama AS cabang,
+                                    x.*
+                                FROM report_mingguan AS x
+                                LEFT JOIN dc_tabel_dc_t AS y ON (
+                                    x.kode_dc = y.tbl_dc_kode
+                                )
+                            ");
+
+                            string exportFileName = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+                            _ = await this._db.SQLite_BulkGetCsv("SELECT * FROM report_raw", "|", $"{exportFileName}_report_raw.CSV", doubleQuote: false);
+                            _ = await this._db.SQLite_BulkGetCsv("SELECT * FROM report_harian", "|", $"{exportFileName}_report_harian.CSV", doubleQuote: false);
+                            _ = await this._db.SQLite_BulkGetCsv("SELECT * FROM report_mingguan", "|", $"{exportFileName}_report_mingguan.CSV", doubleQuote: false);
+
+                            _ = Process.Start(new ProcessStartInfo {
+                                Arguments = this._csv.CsvFolderPath,
+                                FileName = "explorer.exe"
+                            });
                         });
-                    });
+
+                        this._logger.SetLogReporter(this.LogReporter);
+                    }
+                    catch (Exception ex) {
+                        this._logger.WriteError(ex);
+                        _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    finally {
+                        this.btnHome.Enabled = true;
+                        this.btnRefresh.Enabled = true;
+                        this.txtFilter.ReadOnly = false;
+                        this.btnUpload.Enabled = true;
+                        this.btnExportLaporan.Enabled = true;
+                        this.btnDownload.Enabled = btnDownloadEnabledBefore;
+                        this.btnDdl.Enabled = btnDdlEnabledBefore;
+                    }
+
+                    this.SetIdleBusyStatus(true);
                 }
             }
-            catch (Exception ex) {
-                this._logger.WriteError(ex);
-                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally {
-                this.btnHome.Enabled = true;
-                this.btnRefresh.Enabled = true;
-                this.txtFilter.ReadOnly = false;
-                this.btnUpload.Enabled = true;
-                this.btnExportLaporan.Enabled = true;
-                this.btnDownload.Enabled = btnDownloadEnabledBefore;
-                this.btnDdl.Enabled = btnDdlEnabledBefore;
-            }
-
-            this.SetIdleBusyStatus(true);
         }
 
         private async void BtnDdl_Click(object sender, EventArgs e) {
