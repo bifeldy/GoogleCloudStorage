@@ -1359,14 +1359,20 @@ namespace GoogleCloudStorage.Panels {
                 if (rgx.Groups[2].Value.ToLower() == "xgps") {
                     var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
 
-                    if (fileDate.Month >= month) {
+                    var firstDayOfCurrentMonth = new DateTime(year, month, 1);
+
+                    if (fileDate >= firstDayOfCurrentMonth) {
                         throw new Exception($"File harus di bulan yang sudah lewat");
                     }
                 }
                 else {
                     var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyMMdd", CultureInfo.InvariantCulture);
 
-                    if (week != fileDate.GetWeekOfYear() || month != fileDate.Month) {
+                    if (
+                        fileDate.Year != year ||
+                        fileDate.Month != month ||
+                        fileDate.GetWeekOfYear() != week
+                    ) {
                         throw new Exception($"File harus di minggu & bulan yang sama dengan tanggal hari ini");
                     }
                 }
