@@ -1794,30 +1794,7 @@ namespace GoogleCloudStorage.Panels {
                                 }
 
                                 if (dialogResult == DialogResult.Yes) {
-                                    try {
-                                        if (rgx.Groups[1].Value.ToLower() != "metadata" && rgx.Groups[2].Value.ToLower() == "xgps") {
-                                            var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
-
-                                            List<string> full_table = await this._db.MySql_GetList<string>($@"
-                                                SELECT
-                                                    CONCAT(table_schema , '.', table_name) AS full_table
-                                                FROM
-                                                    information_schema.tables
-                                                WHERE
-                                                    UPPER(table_type) = 'BASE TABLE'
-                                                    AND LOWER(table_schema) IN ('gpsloc_tgl')
-                                                    AND LOWER(table_name) LIKE '%gps%{fileDate:yyyyMM}%'
-                                            ");
-
-                                            foreach (string table in full_table) {
-                                                _ = await this._db.MySql_ExecQuery($"DROP TABLE IF EXISTS {table}");
-                                            }
-                                        }
-                                    }
-                                    catch (Exception er) {
-                                        this._logger.WriteError(er);
-                                        _ = MessageBox.Show(er.Message, "Delete Table Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                    }
+                                    await this.ExecDropTableUploaded(rgx);
 
                                     // Tahan Dulu Semoga File Handlenya Sudah Ke Lepas Dan Gak Lock
                                     await Task.Delay(3 * 1000);
@@ -1837,6 +1814,16 @@ namespace GoogleCloudStorage.Panels {
                                 _ = MessageBox.Show(err.Message, "Delete Local File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
+                        else if (uploaded.Exception != null && uploaded.Status == EGcsUploadStatus.Failed) {
+                            // -- Jagaan ReUpload Yang Sudah Berhasil -- Cuma Boleh 1x Upload Tanpa Bisa Delete
+                            string em = uploaded.Exception.Message;
+
+                            if (!string.IsNullOrEmpty(em)) {
+                                if (em.ToUpper().Contains("DOES NOT HAVE STORAGE.OBJECTS.DELETE ACCESS")) {
+                                    await this.ExecDropTableUploaded(rgx);
+                                }
+                            }
+                        }
                     }
                     catch (TaskCanceledException ex) {
                         this._logger.WriteError(ex);
@@ -1854,6 +1841,33 @@ namespace GoogleCloudStorage.Panels {
 
                 // TODO :: Migrasi Dari Tombol Download Biar Masuk Antrian (?)
 
+            }
+        }
+
+        private async Task ExecDropTableUploaded(Match rgx) {
+            try {
+                if (rgx.Groups[1].Value.ToLower() != "metadata" && rgx.Groups[2].Value.ToLower() == "xgps") {
+                    var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
+
+                    List<string> full_table = await this._db.MySql_GetList<string>($@"
+                        SELECT
+                            CONCAT(table_schema , '.', table_name) AS full_table
+                        FROM
+                            information_schema.tables
+                        WHERE
+                            UPPER(table_type) = 'BASE TABLE'
+                            AND LOWER(table_schema) IN ('gpsloc_tgl')
+                            AND LOWER(table_name) LIKE '%gps%{fileDate:yyyyMM}%'
+                    ");
+
+                    foreach (string table in full_table) {
+                        _ = await this._db.MySql_ExecQuery($"DROP TABLE IF EXISTS {table}");
+                    }
+                }
+            }
+            catch (Exception er) {
+                this._logger.WriteError(er);
+                _ = MessageBox.Show(er.Message, "Drop Table Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
