@@ -1794,15 +1794,6 @@ namespace GoogleCloudStorage.Panels {
                                 }
 
                                 if (dialogResult == DialogResult.Yes) {
-                                    if (fileInfo.Exists) {
-                                        fileInfo.Delete();
-                                    }
-
-                                    string fileSigPath = fileLocal.Replace("\\", "/");
-                                    if (File.Exists($"{fileSigPath}.sig")) {
-                                        File.Delete($"{fileSigPath}.sig");
-                                    }
-
                                     try {
                                         if (rgx.Groups[1].Value.ToLower() != "metadata" && rgx.Groups[2].Value.ToLower() == "xgps") {
                                             var fileDate = DateTime.ParseExact(rgx.Groups[3].Value, "yyyyMM", CultureInfo.InvariantCulture);
@@ -1827,11 +1818,23 @@ namespace GoogleCloudStorage.Panels {
                                         this._logger.WriteError(er);
                                         _ = MessageBox.Show(er.Message, "Delete Table Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                     }
+
+                                    // Tahan Dulu Semoga File Handlenya Sudah Ke Lepas Dan Gak Lock
+                                    await Task.Delay(3 * 1000);
+
+                                    if (fileInfo.Exists) {
+                                        fileInfo.Delete();
+                                    }
+
+                                    string fileSigPath = fileLocal.Replace("\\", "/");
+                                    if (File.Exists($"{fileSigPath}.sig")) {
+                                        File.Delete($"{fileSigPath}.sig");
+                                    }
                                 }
                             }
                             catch (Exception err) {
                                 this._logger.WriteError(err);
-                                _ = MessageBox.Show(err.Message, "Delete Local Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                _ = MessageBox.Show(err.Message, "Delete Local File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
                     }
