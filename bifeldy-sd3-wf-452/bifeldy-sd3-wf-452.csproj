@@ -120,6 +120,12 @@
     <Compile Include="Forms\ReportLaporan.Designer.cs">
       <DependentUpon>ReportLaporan.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\S3Browser.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\S3Browser.Designer.cs">
+      <DependentUpon>S3Browser.cs</DependentUpon>
+    </Compile>
     <Compile Include="Handlers\Db_.cs" />
     <Compile Include="Panels\CekProgram.cs">
       <SubType>UserControl</SubType>
@@ -155,6 +161,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\ReportLaporan.resx">
       <DependentUpon>ReportLaporan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\S3Browser.resx">
+      <DependentUpon>S3Browser.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Panels\CekProgram.resx">
       <DependentUpon>CekProgram.cs</DependentUpon>
@@ -205,7 +214,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="credentials.txt">
+    <Content Include="credential_gcp.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="credential_s3.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Images\domar.gif">

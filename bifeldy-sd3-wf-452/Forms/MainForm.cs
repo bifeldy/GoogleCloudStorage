@@ -91,7 +91,7 @@ namespace GoogleCloudStorage.Forms {
                     this.SysTray_MenuExit(sender, EventArgs.Empty);
                 }
                 else {
-                    _ = MessageBox.Show("Untuk keluar silahkan klik kanan pada icon di kanan bawah SYSTEM TRAY, jangan lupa pastikan tab SEDANG BERJALAN sudah kosong", "Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    _ = MessageBox.Show("Untuk keluar silahkan klik kanan pada icon di kanan bawah SYSTEM TRAY, jangan lupa pastikan tab SEDANG BERJALAN dan STREAM CLOUD (TRANSIT) sudah kosong", "Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     this.lastFormWindowState = this.WindowState;
                     this.sysTrayNotifyIcon.BalloonTipIcon = ToolTipIcon.Info;
                     this.sysTrayNotifyIcon.BalloonTipTitle = "Aplikasi Berjalan Di Belakang Layar";

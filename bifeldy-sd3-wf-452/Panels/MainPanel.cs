@@ -19,7 +19,9 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -44,6 +46,7 @@ namespace GoogleCloudStorage.Panels {
         private readonly IWinReg _winreg;
         private readonly IConverter _converter;
         private readonly IChiper _chiper;
+        private readonly IAmazonS3 _s3;
         private readonly IGoogleCloudStorage _gcs;
         private readonly IBerkas _berkas;
         private readonly ICsv _csv;
@@ -56,7 +59,7 @@ namespace GoogleCloudStorage.Panels {
 
         public IProgress<string> LogReporter { get; set; } = null;
 
-        private readonly Icon DEFAULT_ICON_FOLDER = DefaultIcons.FolderLarge;
+        private readonly Icon DEFAULT_ICON_FOLDER = DefaultIcons.Extract("shell32.dll", 3, true);
         private readonly Icon DEFAULT_ICON_BUCKET = DefaultIcons.Extract("shell32.dll", 9, true);
         private readonly Icon DEFAULT_ICON_OBJECT = DefaultIcons.Extract("shell32.dll", 69, true);
 
@@ -83,6 +86,8 @@ namespace GoogleCloudStorage.Panels {
         IProgress<dynamic> onCompleteFailDownloadProgress = null;
         IProgress<string> onWriteLogProgress = null;
 
+        private CancellationTokenSource debounceToken = null;
+
         public CMainPanel(
             IApp app,
             ILogger logger,
@@ -91,6 +96,7 @@ namespace GoogleCloudStorage.Panels {
             IWinReg winreg,
             IConverter converter,
             IChiper chiper,
+            IAmazonS3 s3,
             IGoogleCloudStorage gcs,
             IBerkas berkas,
             ICsv csv,
@@ -104,6 +110,7 @@ namespace GoogleCloudStorage.Panels {
             this._winreg = winreg;
             this._converter = converter;
             this._chiper = chiper;
+            this._s3 = s3;
             this._gcs = gcs;
             this._berkas = berkas;
             this._csv = csv;
@@ -111,6 +118,8 @@ namespace GoogleCloudStorage.Panels {
             this._updater = updater;
 
             this.InitializeComponent();
+            this.imageList.ColorDepth = ColorDepth.Depth32Bit;
+
             this.OnInit();
         }
 
@@ -201,7 +210,7 @@ namespace GoogleCloudStorage.Panels {
         }
 
         private void ChkWindowsStartup_CheckedChanged(object sender, EventArgs e) {
-            var cb = (CheckBox) sender;
+            var cb = (CheckBox)sender;
             this._config.Set("WindowsStartup", cb.Checked);
             this._winreg.SetWindowsStartup(cb.Checked);
         }
@@ -366,6 +375,59 @@ namespace GoogleCloudStorage.Panels {
 
             this.dgSuccess.EnableHeadersVisualStyles = false;
 
+            _ = this.dgStreamCloud.Columns.Add(new DataGridViewTextBoxColumn {
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                HeaderText = "File Source",
+                Name = "dgStreamCloud_FileSource",
+                ReadOnly = true
+            });
+            _ = this.dgStreamCloud.Columns.Add(new DataGridViewTextBoxColumn {
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
+                DefaultCellStyle = dgViewCellStyle,
+                HeaderText = "Direction",
+                Name = "dgStreamCloud_Direction",
+                ReadOnly = true
+            });
+            _ = this.dgStreamCloud.Columns.Add(new DataGridViewTextBoxColumn {
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                HeaderText = "File Target",
+                Name = "dgStreamCloud_FileTarget",
+                ReadOnly = true
+            });
+            _ = this.dgStreamCloud.Columns.Add(new DataGridViewProgressColumn {
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
+                DefaultCellStyle = dgViewCellStyle,
+                HeaderText = "Progress",
+                MinimumWidth = 100,
+                Name = "dgStreamCloud_Progress",
+                ReadOnly = true
+            });
+            _ = this.dgStreamCloud.Columns.Add(new DataGridViewTextBoxColumn {
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
+                HeaderText = "Speed",
+                Name = "dgStreamCloud_Speed",
+                ReadOnly = true
+            });
+            _ = this.dgStreamCloud.Columns.Add(new DataGridViewTextBoxColumn {
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
+                HeaderText = "Status",
+                MinimumWidth = 100,
+                Name = "dgStreamCloud_Status",
+                ReadOnly = true
+            });
+            // dgStreamCloud.Columns.Add(new DataGridViewButtonColumn {
+            //     AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells,
+            //     DefaultCellStyle = dgViewCellStyle,
+            //     HeaderText = "Action",
+            //     Name = "dgStreamCloud_Cancel",
+            //     Text = "Cancel",
+            //     ReadOnly = true,
+            //     FlatStyle = FlatStyle.Flat,
+            //     UseColumnTextForButtonValue = true
+            // });
+
+            this.dgStreamCloud.EnableHeadersVisualStyles = false;
+
             #endregion
         }
 
@@ -392,12 +454,12 @@ namespace GoogleCloudStorage.Panels {
                     }
 
                     if (fileInfo.Length > 0) {
-                        decimal transferPercentage = decimal.Parse($"{(decimal) 100 * progressNew.BytesSent / fileInfo.Length:0.00}");
+                        decimal transferPercentage = decimal.Parse($"{(decimal)100 * progressNew.BytesSent / fileInfo.Length:0.00}");
                         dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
                     }
 
                     if (progressNew.BytesSent > 0 && diff.TotalSeconds > 0) {
-                        var etaSeconds = TimeSpan.FromSeconds((int)((decimal) fileInfo.Length / progressNew.BytesSent / (decimal) diff.TotalSeconds));
+                        var etaSeconds = TimeSpan.FromSeconds((int)((decimal)fileInfo.Length / progressNew.BytesSent / (decimal)diff.TotalSeconds));
                         dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
                     }
                 }
@@ -480,12 +542,12 @@ namespace GoogleCloudStorage.Panels {
                     }
 
                     if (fileSize > 0) {
-                        decimal transferPercentage = decimal.Parse($"{(decimal) 100 * progressNew.BytesDownloaded / fileSize:0.00}");
+                        decimal transferPercentage = decimal.Parse($"{(decimal)100 * progressNew.BytesDownloaded / fileSize:0.00}");
                         dataGridViewRow.Cells[this.dgOnProgress.Columns["dgOnProgress_Progress"].Index].Value = transferPercentage;
                     }
 
                     if (progressNew.BytesDownloaded > 0 && diff.TotalSeconds > 0) {
-                        var etaSeconds = TimeSpan.FromSeconds((int)((decimal) fileSize / progressNew.BytesDownloaded / (decimal) diff.TotalSeconds));
+                        var etaSeconds = TimeSpan.FromSeconds((int)((decimal)fileSize / progressNew.BytesDownloaded / (decimal)diff.TotalSeconds));
                         dgOnProgress_Status.Value += $" {etaSeconds.ToEtaString()}";
                     }
                 }
@@ -691,6 +753,8 @@ namespace GoogleCloudStorage.Panels {
             this.dgOnProgress.ClearSelection();
             this.dgSuccess.ClearSelection();
             this.dgErrorFail.ClearSelection();
+            this.dgStreamCloud.ClearSelection();
+            this.dgGcsScheduler.ClearSelection();
         }
 
         private void UpdateLastActivity() {
@@ -841,12 +905,12 @@ namespace GoogleCloudStorage.Panels {
                     fd.InitialDirectory = this._app.AppLocation;
                     fd.RestoreDirectory = true;
                     fd.CheckFileExists = true;
-                    fd.Filter = "credentials (*.json)|*.json";
-                    fd.Title = "Open credentials.json";
+                    fd.Filter = "credential_gcp (*.json)|*.json";
+                    fd.Title = "Open credential_gcp.json";
                     fd.RestoreDirectory = true;
 
                     if (fd.ShowDialog() != DialogResult.OK) {
-                        throw new Exception("Gagal memuat file credentials.json");
+                        throw new Exception("Gagal memuat file credential_gcp.json");
                     }
 
                     filePath = fd.FileName;
@@ -856,18 +920,20 @@ namespace GoogleCloudStorage.Panels {
                 if (this._app.IsIdle) {
                     await this.LoadBuckets();
                 }
+
+                this.timerBackgroundCloud.Enabled = true;
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Custom GCP Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private async void BtnConnect_Click(object sender, EventArgs e) {
             try {
-                string filePath = Path.Combine(this._app.AppLocation, "credentials.txt");
+                string filePath = Path.Combine(this._app.AppLocation, "credential_gcp.txt");
                 if (!File.Exists(filePath)) {
-                    filePath = Path.Combine(this._app.AppLocation, "credentials.json");
+                    filePath = Path.Combine(this._app.AppLocation, "credential_gcp.json");
                     if (!File.Exists(filePath)) {
                         this.BtnConnectWithCustomCredential_Click(sender, e);
                         return;
@@ -878,10 +944,12 @@ namespace GoogleCloudStorage.Panels {
                 if (this._app.IsIdle) {
                     await this.LoadBuckets();
                 }
+
+                this.timerBackgroundCloud.Enabled = true;
             }
             catch (Exception ex) {
                 this._logger.WriteError(ex);
-                _ = MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _ = MessageBox.Show(ex.Message, "Default GCP Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -903,7 +971,10 @@ namespace GoogleCloudStorage.Panels {
             if (item is GcsBucket || item.Kind == "storage#bucket") {
                 // Name = Id Bucket Sama Aja Kayaknya (?)
                 if (this._app.IsIdle) {
-                    _ = await this.LoadObjects(item.Name);
+                    this.txtFilter.Text = string.Empty;
+                    if (!await this.LoadObjects(item.Name)) {
+                        await this.LoadBuckets();
+                    }
                 }
             }
         }
@@ -931,6 +1002,65 @@ namespace GoogleCloudStorage.Panels {
                 case Keys.Enter:
                     this.BtnRefresh_Click(sender, EventArgs.Empty);
                     break;
+            }
+        }
+
+        private async void TxtFilter_TextChanged(object sender, EventArgs e) {
+            if (this.debounceToken != null) {
+                this.debounceToken.Cancel();
+                this.debounceToken.Dispose();
+            }
+
+            this.debounceToken = new CancellationTokenSource();
+            CancellationToken token = this.debounceToken.Token;
+
+            try {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) {
+                    return;
+                }
+
+                string keyword = this.txtFilter.Text.ToUpper();
+
+                this.lvRemote.BeginUpdate();
+
+                if (string.IsNullOrEmpty(this.txtDirPath.Text)) {
+                    if (this.allBuckets == null) {
+                        return;
+                    }
+
+                    GcsBucket[] filtered = this.allBuckets.Where(b => b.Name.ToUpper().Contains(keyword)).ToArray();
+                    this.lvRemote.Items.Clear();
+                    foreach (GcsBucket bckt in filtered) {
+                        var lvi = new ListViewItem { Tag = bckt, Text = bckt.Name, ImageIndex = 0 };
+                        _ = lvi.SubItems.Add(bckt.Updated.ToString());
+                        _ = this.lvRemote.Items.Add(lvi);
+                    }
+                }
+                else {
+                    if (this.allObjects == null) {
+                        return;
+                    }
+
+                    GcsObject[] filtered = this.allObjects.Where(o => o.Name.ToUpper().Contains(keyword)).ToArray();
+                    this.lvRemote.Items.Clear();
+
+                    var itemsToAdd = new List<ListViewItem>();
+                    foreach (GcsObject obj in filtered) {
+                        var lvi = new ListViewItem { Tag = obj, Text = obj.Name, ImageIndex = 0 };
+                        _ = lvi.SubItems.Add(this._converter.FormatByteSizeHumanReadable((long)obj.Size));
+                        _ = lvi.SubItems.Add(obj.Updated.ToString());
+                        itemsToAdd.Add(lvi);
+                    }
+
+                    this.lvRemote.Items.AddRange(itemsToAdd.ToArray());
+                }
+            }
+            catch (TaskCanceledException) {
+                //
+            }
+            finally {
+                this.lvRemote.EndUpdate();
             }
         }
 
@@ -970,11 +1100,12 @@ namespace GoogleCloudStorage.Panels {
                             var file1 = new List<GcsObject>();
                             var file2 = new List<GcsObject>();
                             foreach (GcsObject obj in this.allObjects) {
+                                string fn = obj.Name.ToLower().Replace("\\", "/").Split('/').Last();
                                 string _fp = fp.Replace(".sig", string.Empty);
-                                Match rgx = Regex.Match(obj.Name.ToLower(), _fp);
+                                Match rgx = Regex.Match(fn, _fp);
                                 if (!rgx.Success) {
                                     _fp = _fp.Replace(".7z", string.Empty);
-                                    rgx = Regex.Match(obj.Name.ToLower(), _fp);
+                                    rgx = Regex.Match(fn, _fp);
                                 }
 
                                 if (rgx.Success) {
@@ -1027,16 +1158,14 @@ namespace GoogleCloudStorage.Panels {
                                     )
                                 ");
 
-                                await this._db.MarkBeforeCommitRollback();
-
                                 foreach (GcsObject f1 in file1.OrderBy(f => f.Name)) {
-                                    string fileName = f1.Name.ToLower().Replace("\\", "/").Split('/').Last();
+                                    string file1Name = f1.Name.ToLower().Replace("\\", "/").Split('/').Last();
                                     string _fp = fp.Replace(".sig", string.Empty);
 
-                                    Match rgx = Regex.Match(fileName.ToLower(), _fp);
+                                    Match rgx = Regex.Match(file1Name.ToLower(), _fp);
                                     if (!rgx.Success) {
                                         _fp = _fp.Replace(".7z", string.Empty);
-                                        rgx = Regex.Match(fileName.ToLower(), _fp);
+                                        rgx = Regex.Match(file1Name.ToLower(), _fp);
                                     }
 
                                     if (!rgx.Success) {
@@ -1053,43 +1182,53 @@ namespace GoogleCloudStorage.Panels {
 
                                     string fn1 = "idm_metadata_".ToLower();
                                     string newLine = string.Empty;
-                                    if (fileName.StartsWith(fn1)) {
-                                        int index = fileName.IndexOf(fn1);
+                                    if (file1Name.StartsWith(fn1)) {
+                                        int index = file1Name.IndexOf(fn1);
 
-                                        string xxxx_xxxxxx = (index < 0) ? fileName : fileName.Remove(index, fn1.Length);
+                                        string xxxx_xxxxxx = (index < 0) ? file1Name : file1Name.Remove(index, fn1.Length);
                                         string dc_kode = xxxx_xxxxxx.Substring(0, 4).ToUpper();
 
                                         newLine += $"{dc_kode}|{fileDate.Year}|{fileDate.Month}|{fileDate.GetWeekOfMonth()}|{f1.Name}|{f1.Size}|{f1.Updated?.ToLocalTime()}|";
 
-                                        GcsObject f2 = file2.Find(f => f.Name.ToLower().EndsWith(xxxx_xxxxxx));
+                                        GcsObject f2 = file2.Find(f => f.Name.ToLower().Replace("\\", "/").Split('/').Last().EndsWith(xxxx_xxxxxx));
 
-                                        newLine += (f2 is null) ? "||" : $"{f2.Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
+                                        string file2Name = f2?.Name.ToLower().Replace("\\", "/").Split('/').Last();
+                                        newLine += (f2 is null) ? "||" : $"{file2Name}|{f2.Size}|{f2.Updated?.ToLocalTime()}";
 
-                                        _ = await this._db.SQLite_ExecQuery(
-                                            @"
-                                                INSERT INTO report_raw(kode_dc, tahun, bulan, minggu, file_1_name, file_1_size_bytes, file_1_date_time, file_2_name, file_2_size_bytes, file_2_date_time)
-                                                VALUES(:kode_dc, :tahun, :bulan, :minggu, :file_1_name, :file_1_size_bytes, :file_1_date_time, :file_2_name, :file_2_size_bytes, :file_2_date_time)
-                                            ",
-                                            new List<CDbQueryParamBind>() {
-                                                new CDbQueryParamBind() { NAME = "kode_dc", VALUE = dc_kode },
-                                                new CDbQueryParamBind() { NAME = "tahun", VALUE = fileDate.Year },
-                                                new CDbQueryParamBind() { NAME = "bulan", VALUE = fileDate.Month },
-                                                new CDbQueryParamBind() { NAME = "minggu", VALUE = fileDate.GetWeekOfMonth() },
-                                                new CDbQueryParamBind() { NAME = "file_1_name", VALUE = f1.Name },
-                                                new CDbQueryParamBind() { NAME = "file_1_size_bytes", VALUE = f1.Size },
-                                                new CDbQueryParamBind() { NAME = "file_1_date_time", VALUE = f1.Updated?.Ticks },
-                                                new CDbQueryParamBind() { NAME = "file_2_name", VALUE = f2?.Name },
-                                                new CDbQueryParamBind() { NAME = "file_2_size_bytes", VALUE = f2?.Size },
-                                                new CDbQueryParamBind() { NAME = "file_2_date_time", VALUE = f2?.Updated?.Ticks }
+                                        Debug.WriteLine($"{file1Name}");
+
+                                        int minggu = fileDate.GetWeekOfMonth();
+                                        try {
+                                            _ = await this._db.SQLite_ExecQuery(
+                                                @"
+                                                    INSERT INTO report_raw(kode_dc, tahun, bulan, minggu, file_1_name, file_1_size_bytes, file_1_date_time, file_2_name, file_2_size_bytes, file_2_date_time)
+                                                    VALUES(:kode_dc, :tahun, :bulan, :minggu, :file_1_name, :file_1_size_bytes, :file_1_date_time, :file_2_name, :file_2_size_bytes, :file_2_date_time)
+                                                ",
+                                                new List<CDbQueryParamBind>() {
+                                                    new CDbQueryParamBind() { NAME = "kode_dc", VALUE = dc_kode },
+                                                    new CDbQueryParamBind() { NAME = "tahun", VALUE = fileDate.Year },
+                                                    new CDbQueryParamBind() { NAME = "bulan", VALUE = fileDate.Month },
+                                                    new CDbQueryParamBind() { NAME = "minggu", VALUE = minggu },
+                                                    new CDbQueryParamBind() { NAME = "file_1_name", VALUE = file1Name },
+                                                    new CDbQueryParamBind() { NAME = "file_1_size_bytes", VALUE = f1.Size },
+                                                    new CDbQueryParamBind() { NAME = "file_1_date_time", VALUE = f1.Updated?.Ticks },
+                                                    new CDbQueryParamBind() { NAME = "file_2_name", VALUE = file2Name },
+                                                    new CDbQueryParamBind() { NAME = "file_2_size_bytes", VALUE = f2?.Size },
+                                                    new CDbQueryParamBind() { NAME = "file_2_date_time", VALUE = f2?.Updated?.Ticks }
+                                                }
+                                            );
+                                        }
+                                        catch (Exception exDup) {
+                                            if (!exDup.Message.Contains("UNIQUE")) {
+                                                throw;
                                             }
-                                        );
+
+                                            this._logger.WriteError($"Kemungkinan Error PRIMARY KEY ({dc_kode}, {fileDate.Year}, {fileDate.Month}, {minggu}, {file1Name}) Duplikat {exDup}");
+                                        }
                                     }
                                 }
-
-                                this._db.MarkSuccessCommitAndClose();
                             }
                             catch {
-                                _ = this._db.MarkFailedRollbackAndClose();
                                 throw;
                             }
 
@@ -1553,7 +1692,7 @@ namespace GoogleCloudStorage.Panels {
 
         private async Task AddQueue(string sigFilePath, string fileNextPath = null) {
             string[] arrRemoteDir = this.txtDirPath.Text.Split('/');
-            string targetFolderId = arrRemoteDir[arrRemoteDir.Length - 1];
+            string targetFolderId = arrRemoteDir.First();
 
             string sigFileName = sigFilePath.Replace("\\", "/").Split('/').Last().ToLower();
 
@@ -1661,76 +1800,75 @@ namespace GoogleCloudStorage.Panels {
                 await Task.Run(async () => {
                     try {
                         string file_md5 = await this._chiper.CalculateMD5File(fileInfo.FullName, this.LogReporter);
+
+                        Uri uploadSession = null;
                         CGcsUploadProgress uploaded = null;
 
-                        using (Stream stream = File.OpenRead(fileLocal)) {
-                            GcsMediaUpload mediaUpload = this._gcs.GenerateUploadMedia(fileInfo, targetFolderId, stream);
-                            Uri uploadSession = null;
+                        GcsMediaUpload mediaUpload = this._gcs.GenerateUploadMedia(fileInfo, targetFolderId);
 
-                            using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(
+                        using (DbDataReader reader = await this._db.SQLite_ExecReaderAsync(
+                            @"
+                                SELECT file_md5, file_session, file_date
+                                FROM upload_chunk
+                                WHERE file_md5 = :file_md5
+                            ",
+                            new List<CDbQueryParamBind>() {
+                                new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 }
+                            })
+                        ) {
+                            while (reader.Read()) {
+                                if (!reader.IsDBNull(2)) {
+                                    var file_date = new DateTime(long.Parse(reader.GetInt64(2).ToString()));
+                                    if (DateTime.Now.Ticks <= file_date.AddDays(5).Ticks) {
+                                        if (!reader.IsDBNull(2)) {
+                                            uploadSession = new Uri(reader.GetString(1));
+                                        }
+                                    }
+                                }
+                            }
+
+                            reader.Close();
+                        }
+
+                        this._db.CloseAllConnection();
+
+                        if (uploadSession == null) {
+                            _ = await this._db.SQLite_ExecQuery(
                                 @"
-                                    SELECT file_md5, file_session, file_date
-                                    FROM upload_chunk
+                                    DELETE FROM upload_chunk
                                     WHERE file_md5 = :file_md5
                                 ",
                                 new List<CDbQueryParamBind>() {
                                     new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 }
-                                })
-                            ) {
-                                while (reader.Read()) {
-                                    if (!reader.IsDBNull(2)) {
-                                        var file_date = new DateTime(long.Parse(reader.GetInt64(2).ToString()));
-                                        if (DateTime.Now.Ticks <= file_date.AddDays(5).Ticks) {
-                                            if (!reader.IsDBNull(2)) {
-                                                uploadSession = new Uri(reader.GetString(1));
-                                            }
-                                        }
-                                    }
                                 }
-
-                                reader.Close();
-                            }
-
-                            this._db.CloseAllConnection();
-
-                            if (uploadSession == null) {
-                                _ = await this._db.SQLite_ExecQuery(
-                                    @"
-                                        DELETE FROM upload_chunk
-                                        WHERE file_md5 = :file_md5
-                                    ",
-                                    new List<CDbQueryParamBind>() {
-                                        new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 }
-                                    }
-                                );
-                                uploadSession = await this._gcs.CreateUploadUri(mediaUpload);
-                                _ = await this._db.SQLite_ExecQuery(
-                                    @"
-                                        INSERT INTO upload_chunk(file_md5, file_session, file_date)
-                                        VALUES(:file_md5, :file_session, :file_date)
-                                    ",
-                                    new List<CDbQueryParamBind>() {
-                                        new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 },
-                                        new CDbQueryParamBind() { NAME = "file_session", VALUE = uploadSession.ToString() },
-                                        new CDbQueryParamBind() { NAME = "file_date", VALUE = DateTime.Now.Ticks }
-                                    }
-                                );
-                            }
-
-                            CGcsUploadProgress progressOld = null;
-                            DateTime dateTime = DateTime.Now;
-                            uploaded = await this._gcs.UploadFile(mediaUpload, uploadSession, (progressNew) => {
-                                this.onGoingUploadProgress.Report(new {
-                                    dgvr = dgvrOnProgress,
-                                    fi = fileInfo,
-                                    pOld = progressOld,
-                                    pNew = progressNew,
-                                    dt = dateTime
-                                });
-                                progressOld = progressNew;
-                                dateTime = DateTime.Now;
-                            }, true);
+                            );
+                            uploadSession = await this._gcs.CreateUploadUri(mediaUpload);
+                            _ = await this._db.SQLite_ExecQuery(
+                                @"
+                                    INSERT INTO upload_chunk(file_md5, file_session, file_date)
+                                    VALUES(:file_md5, :file_session, :file_date)
+                                ",
+                                new List<CDbQueryParamBind>() {
+                                    new CDbQueryParamBind() { NAME = "file_md5", VALUE = file_md5 },
+                                    new CDbQueryParamBind() { NAME = "file_session", VALUE = uploadSession.ToString() },
+                                    new CDbQueryParamBind() { NAME = "file_date", VALUE = DateTime.Now.Ticks }
+                                }
+                            );
                         }
+
+                        CGcsUploadProgress progressOld = null;
+                        DateTime dateTime = DateTime.Now;
+                        uploaded = await this._gcs.UploadFile(mediaUpload, uploadSession, (progressNew) => {
+                            this.onGoingUploadProgress.Report(new {
+                                dgvr = dgvrOnProgress,
+                                fi = fileInfo,
+                                pOld = progressOld,
+                                pNew = progressNew,
+                                dt = dateTime
+                            });
+                            progressOld = progressNew;
+                            dateTime = DateTime.Now;
+                        }, true);
 
                         string fn = fileInfo.Name.Replace("\\", "/").Split('/').Last().ToLower();
 
@@ -1900,7 +2038,7 @@ namespace GoogleCloudStorage.Panels {
                     }
 
                     string[] arrRemoteDir = this.txtDirPath.Text.Split('/');
-                    string folderId = arrRemoteDir[arrRemoteDir.Length - 1];
+                    string folderId = arrRemoteDir.First();
                     string targetPathLocal = selectedLocalFilePath.Replace("\\", "/");
 
                     if (this.CheckProgressIsRunning(targetPathLocal, $"Google://{folderId}/{item.Name}")) {
@@ -1962,6 +2100,207 @@ namespace GoogleCloudStorage.Panels {
             }
 
             this.SetIdleBusyStatus(true);
+        }
+
+        private void TimerBackgroundCloud_Tick(object sender, EventArgs e) {
+            if (!this._app.IsIdle) {
+                return;
+            }
+
+            try {
+                // TODO ::
+            }
+            catch (Exception ex) {
+                this._logger.WriteError(ex);
+                _ = MessageBox.Show(ex.Message, "GCP Background Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async void BtnUploadFromS3_Click(object sender, EventArgs e) {
+            try {
+                string filePath = Path.Combine(this._app.AppLocation, "credential_s3.txt");
+                if (!File.Exists(filePath)) {
+                    filePath = Path.Combine(this._app.AppLocation, "credential_s3.json");
+                    if (!File.Exists(filePath)) {
+                        using (var fd = new OpenFileDialog()) {
+                            fd.InitialDirectory = this._app.AppLocation;
+                            fd.RestoreDirectory = true;
+                            fd.CheckFileExists = true;
+                            fd.Filter = "credential_s3 (*.json;*.txt)|*.json;*.txt";
+                            fd.Title = "Open credential_s3.json / credential_s3.txt";
+                            fd.RestoreDirectory = true;
+
+                            if (fd.ShowDialog() != DialogResult.OK) {
+                                throw new Exception("Gagal memuat file credential_s3.json / credential_s3.txt");
+                            }
+
+                            filePath = fd.FileName;
+                        }
+                    }
+                }
+
+                this._s3.LoadCredential(filePath, filePath.ToLower().EndsWith(".txt"));
+                this._s3.InitializeClient();
+
+                string selectedBucket = string.Empty;
+                string selectedKey = string.Empty;
+                long selectedSize = 0;
+                bool selectedUploadByStreamPipe = false;
+
+                using (var s3Browser = new CS3Browser(this._app, this._logger, this._config, this._s3, this._converter)) {
+                    DialogResult diagRes = s3Browser.ShowDialog(this);
+
+                    if (diagRes != DialogResult.OK) {
+                        return;
+                    }
+
+                    selectedBucket = s3Browser.SelectedBucket;
+                    selectedKey = s3Browser.SelectedObjectKey;
+                    selectedSize = s3Browser.SelectedObjectSize;
+                    selectedUploadByStreamPipe = s3Browser.SelectedUploadByStreamPipe;
+                }
+
+                if (string.IsNullOrEmpty(selectedBucket) || string.IsNullOrEmpty(selectedKey)) {
+                    return;
+                }
+
+                // WAJIB untuk .NET 4.5.2 agar bisa konek ke API modern AWS/Google
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                string[] arrRemoteDir = this.txtDirPath.Text.Split('/');
+                string targetGcsBucket = arrRemoteDir.First();
+
+                if (selectedUploadByStreamPipe) {
+                    string fileCloudSource = $"s3://{selectedBucket}/{selectedKey}";
+                    string fileUploadDownload = "===>>>";
+
+                    string customFileName = selectedKey.Split('/').Last();
+                    string fileCloudTarget = $"gcs://{targetGcsBucket}/{customFileName}";
+
+                    foreach (DataGridViewRow row in this.dgStreamCloud.Rows) {
+                        if (
+                            row.Cells[this.dgStreamCloud.Columns["dgStreamCloud_FileSource"].Index].Value.ToString().Equals(fileCloudSource) &&
+                            row.Cells[this.dgStreamCloud.Columns["dgStreamCloud_FileTarget"].Index].Value.ToString().Equals(fileCloudTarget)
+                        ) {
+                            throw new Exception($"Proses {fileCloudSource} ===>>> {fileCloudTarget} sedang berjalan / sudah selesai");
+                        }
+                    }
+
+                    int idx = this.dgStreamCloud.Rows.Add(fileCloudSource, fileUploadDownload, fileCloudTarget);
+                    DataGridViewRow dataGridViewRow = this.dgStreamCloud.Rows[idx];
+
+                    long bytesTerkirim = 0;
+                    int maxRetry = 5;
+                    int currentRetry = 0;
+                    bool isCompleted = false;
+                    Uri uploadUri = null;
+
+                    while (!isCompleted && currentRetry < maxRetry) {
+                        try {
+                            using (AwsS3GetObjectResponse s3Res = await this._s3.GetFileResponse(selectedBucket, selectedKey, bytesTerkirim)) {
+                                GcsMediaUpload mediaUpload = this._gcs.GenerateUploadMedia(customFileName, targetGcsBucket, s3Res.ResponseStream);
+
+                                CGcsUploadProgress progressOld = null;
+                                DateTime dateTime = DateTime.Now;
+
+                                CGcsUploadProgress result = await this._gcs.UploadFile(mediaUpload, uploadUri, (progressNew) => {
+                                    dataGridViewRow.Cells[this.dgStreamCloud.Columns["dgStreamCloud_Status"].Index].Value = $"{progressNew.Status} ...";
+
+                                    if (progressNew.Status == EGcsUploadStatus.Uploading) {
+                                        TimeSpan diff = DateTime.Now - dateTime;
+                                        if (progressOld != null) {
+                                            string transferSpeed = $"0 KB/s";
+                                            if (diff.TotalMilliseconds > 0) {
+                                                transferSpeed = $"{(progressNew.BytesSent - progressOld.BytesSent) / diff.TotalMilliseconds:0.00} KB/s";
+                                            }
+
+                                            dataGridViewRow.Cells[this.dgStreamCloud.Columns["dgStreamCloud_Speed"].Index].Value = transferSpeed;
+                                        }
+
+                                        if (selectedSize > 0) {
+                                            decimal transferPercentage = decimal.Parse($"{(decimal)100 * progressNew.BytesSent / selectedSize:0.00}");
+                                            dataGridViewRow.Cells[this.dgStreamCloud.Columns["dgStreamCloud_Progress"].Index].Value = transferPercentage;
+                                        }
+
+                                        if (progressNew.BytesSent > 0 && diff.TotalSeconds > 0) {
+                                            var etaSeconds = TimeSpan.FromSeconds((int)((decimal)selectedSize / progressNew.BytesSent / (decimal)diff.TotalSeconds));
+                                            dataGridViewRow.Cells[this.dgStreamCloud.Columns["dgStreamCloud_Status"].Index].Value += $" {etaSeconds.ToEtaString()}";
+                                        }
+                                    }
+
+                                    this.ClearDataGridSelection();
+
+                                    progressOld = progressNew;
+                                    dateTime = DateTime.Now;
+                                }, true);
+
+                                if (result.Status == EGcsUploadStatus.Completed || result.Status == EGcsUploadStatus.Failed) {
+                                    string errorMessage = string.Empty;
+                                    if (result.Exception != null) {
+                                        // -- Jagaan ReUpload Yang Sudah Berhasil -- Cuma Boleh 1x Upload Tanpa Bisa Delete
+                                        string em = result.Exception.Message;
+
+                                        if (!string.IsNullOrEmpty(em)) {
+                                            if (em.ToUpper().Contains("DOES NOT HAVE STORAGE.OBJECTS.DELETE ACCESS")) {
+                                                em = $"Sebelumnya Sudah Berhasil Di Upload{Environment.NewLine}Silahkan Gunakan Kotak Pencarian (Lalu Tekan Enter) Untuk Mengecek Data{Environment.NewLine}{Environment.NewLine}{result.Exception.Message}";
+                                            }
+
+                                            errorMessage = $" :: {em}";
+                                        }
+
+                                        this._logger.WriteError(result.Exception);
+                                    }
+
+                                    dataGridViewRow.Cells[this.dgStreamCloud.Columns["dgStreamCloud_Status"].Index].Value = $"{result.Status}{errorMessage}";
+                                }
+
+                                isCompleted = true;
+                            }
+                        }
+                        catch (Exception ex) {
+                            currentRetry++;
+
+                            this._logger.WriteError($"Terjadi kendala, mencoba mengulang untuk melanjutkan (Percobaan {currentRetry}/{maxRetry}). Error: {ex.Message}");
+
+                            if (currentRetry >= maxRetry) {
+                                dataGridViewRow.Cells[this.dgStreamCloud.Columns["dgStreamCloud_Status"].Index].Value = $"Error: {ex.Message}";
+                                break;
+                            }
+
+                            await Task.Delay(3 * 1000);
+                        }
+                    }
+                }
+                else {
+                    // Eksekusi menggunakan Google Cloud Storage Transfer Service (STS)
+
+                    string awsAccess = this._s3.GetAccessKey();
+                    string awsSecret = this._s3.GetSecretKey();
+
+                    GcsTransferJob job = await this._gcs.CreateS3ToGcsTransferJob(
+                        selectedBucket,
+                        awsAccess,
+                        awsSecret,
+                        targetGcsBucket,
+                        selectedKey
+                    );
+
+                    string pesan = $"Perintah eksekusi transfer telah diterima oleh server Google!\n\n" +
+                                   $"Nama Job: {job.Name}\n" +
+                                   $"Proses akan berjalan secara otomatis di latar belakang. " +
+                                   $"Anda dapat menutup aplikasi ini dan mengecek Google Cloud Console secara berkala.";
+
+                    _ = MessageBox.Show(pesan, "Transfer Job Aktif", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex) {
+                this._logger.WriteError(ex);
+                _ = MessageBox.Show(ex.Message, "S3 Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnUploadFromUrl_Click(object sender, EventArgs e) {
+            _ = MessageBox.Show("Fitur Belum Tersedia", "Upload From URL", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
     }

@@ -43,7 +43,10 @@ namespace GoogleCloudStorage.Panels {
             this.lblTime = new System.Windows.Forms.Label();
             this.lblDate = new System.Windows.Forms.Label();
             this.lvRemote = new System.Windows.Forms.ListView();
-            this.btnUpload = new System.Windows.Forms.Button();
+            this.btnUpload = new GoogleCloudStorage.Components.SplitButton();
+            this.uploadMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.btnUploadFromS3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.btnUploadFromUrl = new System.Windows.Forms.ToolStripMenuItem();
             this.btnDownload = new System.Windows.Forms.Button();
             this.btnDdl = new System.Windows.Forms.Button();
             this.tabUpDownProgress = new System.Windows.Forms.TabControl();
@@ -55,6 +58,9 @@ namespace GoogleCloudStorage.Panels {
             this.dgErrorFail = new System.Windows.Forms.DataGridView();
             this.tabSuccess = new System.Windows.Forms.TabPage();
             this.dgSuccess = new System.Windows.Forms.DataGridView();
+            this.tabStreamCloud = new System.Windows.Forms.TabPage();
+            this.tabGcsScheduler = new System.Windows.Forms.TabPage();
+            this.dgGcsScheduler = new System.Windows.Forms.DataGridView();
             this.btnExportLaporan = new System.Windows.Forms.Button();
             this.imageList = new System.Windows.Forms.ImageList(this.components);
             this.cbDeleteOnComplete = new System.Windows.Forms.CheckBox();
@@ -67,7 +73,10 @@ namespace GoogleCloudStorage.Panels {
             this.reConnectMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.btnConnectWithCustomCredential = new System.Windows.Forms.ToolStripMenuItem();
             this.btnConnect = new GoogleCloudStorage.Components.SplitButton();
+            this.timerBackgroundCloud = new System.Windows.Forms.Timer(this.components);
+            this.dgStreamCloud = new System.Windows.Forms.DataGridView();
             ((System.ComponentModel.ISupportInitialize)(this.imgDomar)).BeginInit();
+            this.uploadMenu.SuspendLayout();
             this.tabUpDownProgress.SuspendLayout();
             this.tabQueue.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgQueue)).BeginInit();
@@ -77,8 +86,12 @@ namespace GoogleCloudStorage.Panels {
             ((System.ComponentModel.ISupportInitialize)(this.dgErrorFail)).BeginInit();
             this.tabSuccess.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).BeginInit();
+            this.tabStreamCloud.SuspendLayout();
+            this.tabGcsScheduler.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgGcsScheduler)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).BeginInit();
             this.reConnectMenu.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgStreamCloud)).BeginInit();
             this.SuspendLayout();
             // 
             // chkWindowsStartup
@@ -208,6 +221,7 @@ namespace GoogleCloudStorage.Panels {
             this.txtFilter.Name = "txtFilter";
             this.txtFilter.Size = new System.Drawing.Size(459, 20);
             this.txtFilter.TabIndex = 22;
+            this.txtFilter.TextChanged += new System.EventHandler(this.TxtFilter_TextChanged);
             this.txtFilter.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtFilter_KeyDown);
             // 
             // label1
@@ -280,17 +294,42 @@ namespace GoogleCloudStorage.Panels {
             // 
             // btnUpload
             // 
+            this.btnUpload.AutoSize = true;
+            this.btnUpload.ContextMenuStrip = this.uploadMenu;
             this.btnUpload.Enabled = false;
             this.btnUpload.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnUpload.Font = new System.Drawing.Font("Segoe UI", 12F);
             this.btnUpload.ForeColor = System.Drawing.SystemColors.ControlText;
             this.btnUpload.Location = new System.Drawing.Point(20, 206);
             this.btnUpload.Name = "btnUpload";
-            this.btnUpload.Size = new System.Drawing.Size(190, 30);
+            this.btnUpload.Size = new System.Drawing.Size(190, 31);
+            this.btnUpload.SplitMenuStrip = this.uploadMenu;
             this.btnUpload.TabIndex = 28;
-            this.btnUpload.Text = "Upload Ke Cloud ...";
+            this.btnUpload.Text = "Upload dari Lokal PC";
             this.btnUpload.UseVisualStyleBackColor = true;
             this.btnUpload.Click += new System.EventHandler(this.BtnUpload_Click);
+            // 
+            // uploadMenu
+            // 
+            this.uploadMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.btnUploadFromS3,
+            this.btnUploadFromUrl});
+            this.uploadMenu.Name = "reConnectMenu";
+            this.uploadMenu.Size = new System.Drawing.Size(160, 48);
+            // 
+            // btnUploadFromS3
+            // 
+            this.btnUploadFromS3.Name = "btnUploadFromS3";
+            this.btnUploadFromS3.Size = new System.Drawing.Size(159, 22);
+            this.btnUploadFromS3.Text = "Upload dari S3";
+            this.btnUploadFromS3.Click += new System.EventHandler(this.BtnUploadFromS3_Click);
+            // 
+            // btnUploadFromUrl
+            // 
+            this.btnUploadFromUrl.Name = "btnUploadFromUrl";
+            this.btnUploadFromUrl.Size = new System.Drawing.Size(159, 22);
+            this.btnUploadFromUrl.Text = "Upload dari URL";
+            this.btnUploadFromUrl.Click += new System.EventHandler(this.BtnUploadFromUrl_Click);
             // 
             // btnDownload
             // 
@@ -303,7 +342,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnDownload.Name = "btnDownload";
             this.btnDownload.Size = new System.Drawing.Size(190, 30);
             this.btnDownload.TabIndex = 29;
-            this.btnDownload.Text = "Simpan Ke Lokal ...";
+            this.btnDownload.Text = "Simpan ke Lokal PC";
             this.btnDownload.UseVisualStyleBackColor = true;
             this.btnDownload.Visible = false;
             this.btnDownload.Click += new System.EventHandler(this.BtnDownload_Click);
@@ -319,7 +358,7 @@ namespace GoogleCloudStorage.Panels {
             this.btnDdl.Name = "btnDdl";
             this.btnDdl.Size = new System.Drawing.Size(190, 30);
             this.btnDdl.TabIndex = 30;
-            this.btnDdl.Text = "Buat Link Download";
+            this.btnDdl.Text = "Buat URL Download";
             this.btnDdl.UseVisualStyleBackColor = true;
             this.btnDdl.Visible = false;
             this.btnDdl.Click += new System.EventHandler(this.BtnDdl_Click);
@@ -332,6 +371,8 @@ namespace GoogleCloudStorage.Panels {
             this.tabUpDownProgress.Controls.Add(this.tabOnProgress);
             this.tabUpDownProgress.Controls.Add(this.tabErrorFail);
             this.tabUpDownProgress.Controls.Add(this.tabSuccess);
+            this.tabUpDownProgress.Controls.Add(this.tabStreamCloud);
+            this.tabUpDownProgress.Controls.Add(this.tabGcsScheduler);
             this.tabUpDownProgress.Location = new System.Drawing.Point(20, 483);
             this.tabUpDownProgress.Margin = new System.Windows.Forms.Padding(0);
             this.tabUpDownProgress.Name = "tabUpDownProgress";
@@ -348,7 +389,7 @@ namespace GoogleCloudStorage.Panels {
             this.tabQueue.Padding = new System.Windows.Forms.Padding(0, 2, 2, 1);
             this.tabQueue.Size = new System.Drawing.Size(757, 76);
             this.tabQueue.TabIndex = 3;
-            this.tabQueue.Text = "Daftar Antrian";
+            this.tabQueue.Text = "Daftar Antrian (Lokal)";
             this.tabQueue.UseVisualStyleBackColor = true;
             // 
             // dgQueue
@@ -376,7 +417,7 @@ namespace GoogleCloudStorage.Panels {
             this.tabOnProgress.Padding = new System.Windows.Forms.Padding(0, 2, 2, 1);
             this.tabOnProgress.Size = new System.Drawing.Size(757, 76);
             this.tabOnProgress.TabIndex = 0;
-            this.tabOnProgress.Text = "Sedang Berjalan";
+            this.tabOnProgress.Text = "Sedang Berjalan (Lokal)";
             this.tabOnProgress.UseVisualStyleBackColor = true;
             // 
             // dgOnProgress
@@ -404,7 +445,7 @@ namespace GoogleCloudStorage.Panels {
             this.tabErrorFail.Padding = new System.Windows.Forms.Padding(0, 2, 2, 1);
             this.tabErrorFail.Size = new System.Drawing.Size(757, 76);
             this.tabErrorFail.TabIndex = 1;
-            this.tabErrorFail.Text = "Error / Gagal";
+            this.tabErrorFail.Text = "Error / Gagal (Lokal)";
             this.tabErrorFail.UseVisualStyleBackColor = true;
             // 
             // dgErrorFail
@@ -432,7 +473,7 @@ namespace GoogleCloudStorage.Panels {
             this.tabSuccess.Padding = new System.Windows.Forms.Padding(0, 2, 2, 1);
             this.tabSuccess.Size = new System.Drawing.Size(757, 76);
             this.tabSuccess.TabIndex = 2;
-            this.tabSuccess.Text = "Berhasil";
+            this.tabSuccess.Text = "Berhasil (Lokal)";
             this.tabSuccess.UseVisualStyleBackColor = true;
             // 
             // dgSuccess
@@ -451,6 +492,45 @@ namespace GoogleCloudStorage.Panels {
             this.dgSuccess.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dgSuccess.Size = new System.Drawing.Size(755, 73);
             this.dgSuccess.TabIndex = 4;
+            // 
+            // tabStreamCloud
+            // 
+            this.tabStreamCloud.Controls.Add(this.dgStreamCloud);
+            this.tabStreamCloud.Location = new System.Drawing.Point(4, 22);
+            this.tabStreamCloud.Name = "tabStreamCloud";
+            this.tabStreamCloud.Padding = new System.Windows.Forms.Padding(0, 2, 2, 1);
+            this.tabStreamCloud.Size = new System.Drawing.Size(757, 76);
+            this.tabStreamCloud.TabIndex = 5;
+            this.tabStreamCloud.Text = "Stream Cloud (Transit)";
+            this.tabStreamCloud.UseVisualStyleBackColor = true;
+            // 
+            // tabGcsScheduler
+            // 
+            this.tabGcsScheduler.Controls.Add(this.dgGcsScheduler);
+            this.tabGcsScheduler.Location = new System.Drawing.Point(4, 22);
+            this.tabGcsScheduler.Name = "tabGcsScheduler";
+            this.tabGcsScheduler.Padding = new System.Windows.Forms.Padding(0, 2, 2, 1);
+            this.tabGcsScheduler.Size = new System.Drawing.Size(757, 76);
+            this.tabGcsScheduler.TabIndex = 4;
+            this.tabGcsScheduler.Text = "GCS Background Job (Cloud)";
+            this.tabGcsScheduler.UseVisualStyleBackColor = true;
+            // 
+            // dgGcsScheduler
+            // 
+            this.dgGcsScheduler.AllowUserToAddRows = false;
+            this.dgGcsScheduler.AllowUserToDeleteRows = false;
+            this.dgGcsScheduler.AllowUserToOrderColumns = true;
+            this.dgGcsScheduler.AllowUserToResizeRows = false;
+            this.dgGcsScheduler.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgGcsScheduler.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgGcsScheduler.Location = new System.Drawing.Point(0, 2);
+            this.dgGcsScheduler.Name = "dgGcsScheduler";
+            this.dgGcsScheduler.ReadOnly = true;
+            this.dgGcsScheduler.RowHeadersVisible = false;
+            this.dgGcsScheduler.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
+            this.dgGcsScheduler.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dgGcsScheduler.Size = new System.Drawing.Size(755, 73);
+            this.dgGcsScheduler.TabIndex = 5;
             // 
             // btnExportLaporan
             // 
@@ -584,6 +664,28 @@ namespace GoogleCloudStorage.Panels {
             this.btnConnect.UseVisualStyleBackColor = true;
             this.btnConnect.Click += new System.EventHandler(this.BtnConnect_Click);
             // 
+            // timerBackgroundCloud
+            // 
+            this.timerBackgroundCloud.Interval = 3000;
+            this.timerBackgroundCloud.Tick += new System.EventHandler(this.TimerBackgroundCloud_Tick);
+            // 
+            // dgStreamCloud
+            // 
+            this.dgStreamCloud.AllowUserToAddRows = false;
+            this.dgStreamCloud.AllowUserToDeleteRows = false;
+            this.dgStreamCloud.AllowUserToOrderColumns = true;
+            this.dgStreamCloud.AllowUserToResizeRows = false;
+            this.dgStreamCloud.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgStreamCloud.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgStreamCloud.Location = new System.Drawing.Point(0, 2);
+            this.dgStreamCloud.Name = "dgStreamCloud";
+            this.dgStreamCloud.ReadOnly = true;
+            this.dgStreamCloud.RowHeadersVisible = false;
+            this.dgStreamCloud.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
+            this.dgStreamCloud.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dgStreamCloud.Size = new System.Drawing.Size(755, 73);
+            this.dgStreamCloud.TabIndex = 6;
+            // 
             // CMainPanel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -620,6 +722,7 @@ namespace GoogleCloudStorage.Panels {
             this.Size = new System.Drawing.Size(800, 600);
             this.Load += new System.EventHandler(this.CMainPanel_Load);
             ((System.ComponentModel.ISupportInitialize)(this.imgDomar)).EndInit();
+            this.uploadMenu.ResumeLayout(false);
             this.tabUpDownProgress.ResumeLayout(false);
             this.tabQueue.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgQueue)).EndInit();
@@ -629,8 +732,12 @@ namespace GoogleCloudStorage.Panels {
             ((System.ComponentModel.ISupportInitialize)(this.dgErrorFail)).EndInit();
             this.tabSuccess.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).EndInit();
+            this.tabStreamCloud.ResumeLayout(false);
+            this.tabGcsScheduler.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dgGcsScheduler)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).EndInit();
             this.reConnectMenu.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dgStreamCloud)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -654,7 +761,6 @@ namespace GoogleCloudStorage.Panels {
         private System.Windows.Forms.Label lblTime;
         private System.Windows.Forms.Label lblDate;
         private System.Windows.Forms.ListView lvRemote;
-        private System.Windows.Forms.Button btnUpload;
         private System.Windows.Forms.Button btnDownload;
         private System.Windows.Forms.Button btnDdl;
         private System.Windows.Forms.TabControl tabUpDownProgress;
@@ -665,7 +771,6 @@ namespace GoogleCloudStorage.Panels {
         private System.Windows.Forms.TabPage tabErrorFail;
         private System.Windows.Forms.DataGridView dgErrorFail;
         private System.Windows.Forms.TabPage tabSuccess;
-        private System.Windows.Forms.DataGridView dgSuccess;
         private System.Windows.Forms.Button btnExportLaporan;
         private System.Windows.Forms.ImageList imageList;
         private System.Windows.Forms.CheckBox cbDeleteOnComplete;
@@ -678,6 +783,16 @@ namespace GoogleCloudStorage.Panels {
         private System.Windows.Forms.ContextMenuStrip reConnectMenu;
         private Components.SplitButton btnConnect;
         private System.Windows.Forms.ToolStripMenuItem btnConnectWithCustomCredential;
+        private System.Windows.Forms.ContextMenuStrip uploadMenu;
+        private System.Windows.Forms.ToolStripMenuItem btnUploadFromS3;
+        private Components.SplitButton btnUpload;
+        private System.Windows.Forms.ToolStripMenuItem btnUploadFromUrl;
+        private System.Windows.Forms.DataGridView dgSuccess;
+        private System.Windows.Forms.TabPage tabGcsScheduler;
+        private System.Windows.Forms.DataGridView dgGcsScheduler;
+        private System.Windows.Forms.Timer timerBackgroundCloud;
+        private System.Windows.Forms.TabPage tabStreamCloud;
+        private System.Windows.Forms.DataGridView dgStreamCloud;
     }
 
 }
