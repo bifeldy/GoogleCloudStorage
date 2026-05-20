@@ -149,6 +149,7 @@ namespace GoogleCloudStorage.Forms {
             this.cbKoneksiLokal.Text = "Gunakan koneksi lokal PC (Down && Up Stream Transit)\r\nTanpa manggunakan Agent dar" +
     "i Google Cloud Storage";
             this.cbKoneksiLokal.UseVisualStyleBackColor = true;
+            this.cbKoneksiLokal.CheckedChanged += new System.EventHandler(this.CbKoneksiLokal_CheckedChanged);
             // 
             // prgrssBrStatus
             // 

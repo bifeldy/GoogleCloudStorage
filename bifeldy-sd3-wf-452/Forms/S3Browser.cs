@@ -63,6 +63,9 @@ namespace GoogleCloudStorage.Forms {
 
             this.InitializeComponent();
             this.imageList.ColorDepth = ColorDepth.Depth32Bit;
+
+            bool streamTransitLokal = this._config.Get<bool>("StreamTransitLokal", this._app.GetConfig("stream_transit_lokal"));
+            this.cbKoneksiLokal.Checked = streamTransitLokal;
         }
 
         public void SetIdleBusyStatus(bool isIdle) {
@@ -516,6 +519,8 @@ namespace GoogleCloudStorage.Forms {
                         _ = MessageBox.Show("Format nama file salah ...", "File METADATA", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     else {
+                        this.SelectedObject.Clear();
+
                         // Metadata
                         this.SelectedObject.Add(s3Obj);
 
@@ -542,12 +547,16 @@ namespace GoogleCloudStorage.Forms {
                         else {
                             this.SelectedObject.Add(tbl);
                             this.DialogResult = DialogResult.OK;
+                            this.Close();
                         }
                     }
-
-                    this.Close();
                 }
             }
+        }
+
+        private void CbKoneksiLokal_CheckedChanged(object sender, EventArgs e) {
+            var cb = (CheckBox)sender;
+            this._config.Set("StreamTransitLokal", cb.Checked);
         }
 
     }
