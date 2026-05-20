@@ -49,10 +49,10 @@ namespace GoogleCloudStorage.Forms {
             this.lvRemote.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F);
             this.lvRemote.FullRowSelect = true;
             this.lvRemote.HideSelection = false;
-            this.lvRemote.Location = new System.Drawing.Point(16, 98);
+            this.lvRemote.Location = new System.Drawing.Point(16, 103);
             this.lvRemote.MultiSelect = false;
             this.lvRemote.Name = "lvRemote";
-            this.lvRemote.Size = new System.Drawing.Size(551, 252);
+            this.lvRemote.Size = new System.Drawing.Size(551, 247);
             this.lvRemote.TabIndex = 34;
             this.lvRemote.TileSize = new System.Drawing.Size(200, 36);
             this.lvRemote.UseCompatibleStateImageBehavior = false;
@@ -142,8 +142,6 @@ namespace GoogleCloudStorage.Forms {
             // 
             this.cbKoneksiLokal.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.cbKoneksiLokal.AutoSize = true;
-            this.cbKoneksiLokal.Checked = true;
-            this.cbKoneksiLokal.CheckState = System.Windows.Forms.CheckState.Checked;
             this.cbKoneksiLokal.Location = new System.Drawing.Point(15, 367);
             this.cbKoneksiLokal.Name = "cbKoneksiLokal";
             this.cbKoneksiLokal.Size = new System.Drawing.Size(286, 30);
@@ -157,7 +155,7 @@ namespace GoogleCloudStorage.Forms {
             this.prgrssBrStatus.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.prgrssBrStatus.ForeColor = System.Drawing.Color.GreenYellow;
-            this.prgrssBrStatus.Location = new System.Drawing.Point(16, 77);
+            this.prgrssBrStatus.Location = new System.Drawing.Point(16, 80);
             this.prgrssBrStatus.MarqueeAnimationSpeed = 25;
             this.prgrssBrStatus.Name = "prgrssBrStatus";
             this.prgrssBrStatus.Size = new System.Drawing.Size(551, 10);

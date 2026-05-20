@@ -59,6 +59,7 @@ namespace GoogleCloudStorage.Panels {
             this.tabSuccess = new System.Windows.Forms.TabPage();
             this.dgSuccess = new System.Windows.Forms.DataGridView();
             this.tabStreamCloud = new System.Windows.Forms.TabPage();
+            this.dgStreamCloud = new System.Windows.Forms.DataGridView();
             this.tabGcsScheduler = new System.Windows.Forms.TabPage();
             this.dgGcsScheduler = new System.Windows.Forms.DataGridView();
             this.btnExportLaporan = new System.Windows.Forms.Button();
@@ -74,7 +75,6 @@ namespace GoogleCloudStorage.Panels {
             this.btnConnectWithCustomCredential = new System.Windows.Forms.ToolStripMenuItem();
             this.btnConnect = new GoogleCloudStorage.Components.SplitButton();
             this.timerBackgroundCloud = new System.Windows.Forms.Timer(this.components);
-            this.dgStreamCloud = new System.Windows.Forms.DataGridView();
             ((System.ComponentModel.ISupportInitialize)(this.imgDomar)).BeginInit();
             this.uploadMenu.SuspendLayout();
             this.tabUpDownProgress.SuspendLayout();
@@ -87,11 +87,11 @@ namespace GoogleCloudStorage.Panels {
             this.tabSuccess.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).BeginInit();
             this.tabStreamCloud.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgStreamCloud)).BeginInit();
             this.tabGcsScheduler.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgGcsScheduler)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).BeginInit();
             this.reConnectMenu.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dgStreamCloud)).BeginInit();
             this.SuspendLayout();
             // 
             // chkWindowsStartup
@@ -504,6 +504,23 @@ namespace GoogleCloudStorage.Panels {
             this.tabStreamCloud.Text = "Stream Cloud (Transit)";
             this.tabStreamCloud.UseVisualStyleBackColor = true;
             // 
+            // dgStreamCloud
+            // 
+            this.dgStreamCloud.AllowUserToAddRows = false;
+            this.dgStreamCloud.AllowUserToDeleteRows = false;
+            this.dgStreamCloud.AllowUserToOrderColumns = true;
+            this.dgStreamCloud.AllowUserToResizeRows = false;
+            this.dgStreamCloud.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgStreamCloud.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgStreamCloud.Location = new System.Drawing.Point(0, 2);
+            this.dgStreamCloud.Name = "dgStreamCloud";
+            this.dgStreamCloud.ReadOnly = true;
+            this.dgStreamCloud.RowHeadersVisible = false;
+            this.dgStreamCloud.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
+            this.dgStreamCloud.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dgStreamCloud.Size = new System.Drawing.Size(755, 73);
+            this.dgStreamCloud.TabIndex = 6;
+            // 
             // tabGcsScheduler
             // 
             this.tabGcsScheduler.Controls.Add(this.dgGcsScheduler);
@@ -666,25 +683,8 @@ namespace GoogleCloudStorage.Panels {
             // 
             // timerBackgroundCloud
             // 
-            this.timerBackgroundCloud.Interval = 3000;
+            this.timerBackgroundCloud.Interval = 10000;
             this.timerBackgroundCloud.Tick += new System.EventHandler(this.TimerBackgroundCloud_Tick);
-            // 
-            // dgStreamCloud
-            // 
-            this.dgStreamCloud.AllowUserToAddRows = false;
-            this.dgStreamCloud.AllowUserToDeleteRows = false;
-            this.dgStreamCloud.AllowUserToOrderColumns = true;
-            this.dgStreamCloud.AllowUserToResizeRows = false;
-            this.dgStreamCloud.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgStreamCloud.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dgStreamCloud.Location = new System.Drawing.Point(0, 2);
-            this.dgStreamCloud.Name = "dgStreamCloud";
-            this.dgStreamCloud.ReadOnly = true;
-            this.dgStreamCloud.RowHeadersVisible = false;
-            this.dgStreamCloud.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
-            this.dgStreamCloud.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgStreamCloud.Size = new System.Drawing.Size(755, 73);
-            this.dgStreamCloud.TabIndex = 6;
             // 
             // CMainPanel
             // 
@@ -733,11 +733,11 @@ namespace GoogleCloudStorage.Panels {
             this.tabSuccess.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgSuccess)).EndInit();
             this.tabStreamCloud.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dgStreamCloud)).EndInit();
             this.tabGcsScheduler.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgGcsScheduler)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numMaxProcess)).EndInit();
             this.reConnectMenu.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dgStreamCloud)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 

@@ -127,6 +127,7 @@
       <DependentUpon>S3Browser.cs</DependentUpon>
     </Compile>
     <Compile Include="Handlers\Db_.cs" />
+    <Compile Include="Models\ForwardOnlySeekableStreamWrapper.cs" />
     <Compile Include="Panels\CekProgram.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -244,7 +245,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Models\" />
     <Folder Include="Rdlcs\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

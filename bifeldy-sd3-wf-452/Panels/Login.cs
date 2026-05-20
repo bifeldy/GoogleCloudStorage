@@ -131,7 +131,7 @@ namespace GoogleCloudStorage.Panels {
                 // Check User Input
                 if (string.IsNullOrEmpty(this.txtUserNameNik.Text) || string.IsNullOrEmpty(this.txtPassword.Text)) {
                     this.ShowLoading(false);
-                    _ = MessageBox.Show("Username / NIK Dan Kata Sandi Wajib Diisi!", "User Authentication", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    _ = MessageBox.Show("Username / NIK Dan Kata Sandi Wajib Diisi!", "User Authentication", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
 
                 await Task.Run(async () => {

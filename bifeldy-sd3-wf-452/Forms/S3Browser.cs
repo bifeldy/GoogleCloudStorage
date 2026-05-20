@@ -35,8 +35,7 @@ namespace GoogleCloudStorage.Forms {
         private string currentBucket = string.Empty;
 
         public string SelectedBucket { get; private set; }
-        public string SelectedObjectKey { get; private set; }
-        public long SelectedObjectSize { get; private set; }
+        public List<AwsS3Object> SelectedObject { get; private set; } = new List<AwsS3Object>();
         public bool SelectedUploadByStreamPipe { get; private set; }
 
         private readonly List<string> ctlExclBusy = new List<string>() {
@@ -219,14 +218,18 @@ namespace GoogleCloudStorage.Forms {
                         itemsToAdd.Add(lvi);
                     }
 
-                    string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
-                    string _fp = fp.Replace(".sig", string.Empty);
+                    string fp = this._config.Get<string>("CloudFilter", this._app.GetConfig("cloud_filter"));
+                    string ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
+                    string _ext = ext.Replace(".sig", string.Empty);
 
                     AwsS3Object[] filteredObjects = this.allObjects.Where(obj => {
-                        string fileName = currentPrefix != string.Empty ? obj.Key.Substring(currentPrefix.Length) : obj.Key;
+                        string fileName = currentPrefix != string.Empty
+                            ? obj.Key.Substring(currentPrefix.Length)
+                            : obj.Key;
 
                         return fileName.ToUpper().Contains(keyword) &&
-                            Regex.IsMatch(obj.Key, _fp, RegexOptions.IgnoreCase);
+                            Regex.IsMatch(obj.Key, fp, RegexOptions.IgnoreCase) &&
+                            obj.Key.EndsWith(_ext, StringComparison.OrdinalIgnoreCase);
                     }).OrderByDescending(obj => obj.LastModified).ToArray();
 
                     foreach (AwsS3Object obj in filteredObjects) {
@@ -413,12 +416,14 @@ namespace GoogleCloudStorage.Forms {
                     itemsToAdd.Add(lvi);
                 }
 
-                string fp = this._config.Get<string>("SigNamePattern", this._app.GetConfig("sig_name_pattern"));
-                string _fp = fp.Replace(".sig", string.Empty);
+                string fp = this._config.Get<string>("CloudFilter", this._app.GetConfig("cloud_filter"));
+                string ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
+                string _ext = ext.Replace(".sig", string.Empty);
 
                 IOrderedEnumerable<AwsS3Object> filteredObjects = this.allObjects.Where(obj => {
                     return obj.Key.ToUpper().Contains(this.txtFilter.Text.ToUpper()) &&
-                           Regex.IsMatch(obj.Key, _fp, RegexOptions.IgnoreCase);
+                        Regex.IsMatch(obj.Key, fp, RegexOptions.IgnoreCase) &&
+                        obj.Key.EndsWith(_ext, StringComparison.OrdinalIgnoreCase);
                 }).OrderByDescending(obj => obj.LastModified);
 
                 foreach (AwsS3Object obj in filteredObjects) {
@@ -496,13 +501,50 @@ namespace GoogleCloudStorage.Forms {
                 ListViewItem selectedItem = this.lvRemote.SelectedItems[0];
 
                 if (selectedItem.Tag is AwsS3Object s3Obj) {
-                    this.SelectedBucket = this.currentBucket;
-
-                    this.SelectedObjectKey = s3Obj.Key;
-                    this.SelectedObjectSize = s3Obj.Size;
                     this.SelectedUploadByStreamPipe = this.cbKoneksiLokal.Checked;
 
-                    this.DialogResult = DialogResult.OK;
+                    this.SelectedBucket = this.currentBucket;
+
+                    string ext = this._config.Get<string>("SelectFileExt", this._app.GetConfig("select_file_ext"));
+                    string _ext = ext.Replace(".sig", string.Empty);
+
+                    string[] fn = s3Obj.Key.ToLower()
+                        .Replace("\\", "/").Split('/')
+                        .Last().Split(new[] { "metadata" }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (fn.Length != 2) {
+                        _ = MessageBox.Show("Format nama file salah ...", "File METADATA", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    else {
+                        // Metadata
+                        this.SelectedObject.Add(s3Obj);
+
+                        // **Table
+                        AwsS3Object tbl = this.allObjects.Find(o => {
+                            bool ok = true;
+
+                            string obj = o.Key.ToLower().Replace("\\", "/").Split('/').Last();
+                            foreach (string f in fn) {
+                                ok = ok && obj.Contains(f);
+                                if (!ok) {
+                                    return false;
+                                }
+                            }
+
+                            ok = ok && obj.EndsWith(_ext, StringComparison.OrdinalIgnoreCase);
+
+                            return ok;
+                        });
+
+                        if (tbl == null) {
+                            _ = MessageBox.Show("File table tidak tersedia ...", "File **TABLE", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                        else {
+                            this.SelectedObject.Add(tbl);
+                            this.DialogResult = DialogResult.OK;
+                        }
+                    }
+
                     this.Close();
                 }
             }
