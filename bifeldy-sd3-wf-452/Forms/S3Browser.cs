@@ -38,6 +38,8 @@ namespace GoogleCloudStorage.Forms {
         public List<AwsS3Object> SelectedObject { get; private set; } = new List<AwsS3Object>();
         public bool SelectedUploadByStreamPipe { get; private set; }
 
+        private readonly string restrictedPath = string.Empty;
+
         private readonly List<string> ctlExclBusy = new List<string>() {
             "btnHome",
             "btnRefresh",
@@ -66,6 +68,8 @@ namespace GoogleCloudStorage.Forms {
 
             bool streamTransitLokal = this._config.Get<bool>("StreamTransitLokal", this._app.GetConfig("stream_transit_lokal"));
             this.cbKoneksiLokal.Checked = streamTransitLokal;
+
+            this.restrictedPath = this._config.Get<string>("RestrictedPath", this._app.GetConfig("restricted_path"));
         }
 
         public void SetIdleBusyStatus(bool isIdle) {
@@ -96,7 +100,21 @@ namespace GoogleCloudStorage.Forms {
         }
 
         private async void S3Browser_Load(object sender, EventArgs e) {
-            await this.LoadBuckets();
+            string[] resPath = this.restrictedPath?.Replace("\\", "/").Split('/').Where(d => !string.IsNullOrEmpty(d)).ToArray();
+            if (resPath == null || resPath?.Length <= 0) {
+                await this.LoadBuckets();
+            }
+            else if (resPath?.Length == 1) {
+                _ = await this.LoadObjects(resPath.First(), string.Empty);
+            }
+            else {
+                string folderPath = string.Join("/", resPath, 1, resPath.Length - 1);
+                if (!folderPath.EndsWith("/")) {
+                    folderPath += "/";
+                }
+
+                _ = await this.LoadObjects(resPath.First(), folderPath);
+            }
         }
 
         private async void BtnHome_Click(object sender, EventArgs e) {
